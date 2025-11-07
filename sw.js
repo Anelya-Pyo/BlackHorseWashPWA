@@ -50,10 +50,18 @@ self.addEventListener("fetch", event => {
   if (event.request.mode === 'navigate' || (event.request.destination && event.request.destination === 'document')) {
     event.respondWith(
       fetch(event.request).then(networkResponse => {
-        // Save a copy in the cache for offline use
-        if (networkResponse && networkResponse.status === 200) {
-          const respClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, respClone));
+        // Save a copy in the cache for offline use — only for safe GET http/https requests
+        try {
+          if (networkResponse && networkResponse.status === 200 && event.request.method === 'GET') {
+            const reqUrl = new URL(event.request.url);
+            if (reqUrl.protocol === 'http:' || reqUrl.protocol === 'https:') {
+              const respClone = networkResponse.clone();
+              caches.open(CACHE_NAME).then(cache => cache.put(event.request, respClone));
+            }
+          }
+        } catch (err) {
+          // ignore any cache.put errors (e.g., unsupported scheme)
+          console.warn('SW cache put skipped:', err && err.message ? err.message : err);
         }
         return networkResponse;
       }).catch(() => {
@@ -70,13 +78,24 @@ self.addEventListener("fetch", event => {
       if (cachedResponse) return cachedResponse;
 
       return fetch(event.request).then(networkResponse => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+        if (!networkResponse || networkResponse.status !== 200) {
           return networkResponse;
         }
-        const responseClone = networkResponse.clone();
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, responseClone);
-        });
+
+        // Only cache GET http(s) resources to avoid errors with chrome-extension:// or other schemes
+        if (event.request.method === 'GET') {
+          try {
+            const reqUrl = new URL(event.request.url);
+            if (reqUrl.protocol === 'http:' || reqUrl.protocol === 'https:') {
+              const responseClone = networkResponse.clone();
+              caches.open(CACHE_NAME).then(cache => {
+                cache.put(event.request, responseClone);
+              });
+            }
+          } catch (err) {
+            console.warn('SW cache put skipped:', err && err.message ? err.message : err);
+          }
+        }
 
         return networkResponse;
       }).catch(() => {
