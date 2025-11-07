@@ -1,6 +1,6 @@
 // service-worker.js
 
-const CACHE_NAME = "black-horse-wash-v1";
+const CACHE_NAME = "black-horse-wash-v2";
 const urlsToCache = [
   "index.html",
   "manifest.json",
@@ -46,6 +46,25 @@ self.addEventListener("activate", event => {
 
 // Intercepter toutes les requêtes
 self.addEventListener("fetch", event => {
+  // For navigation requests (HTML pages), prefer network first so users get updates quickly
+  if (event.request.mode === 'navigate' || (event.request.destination && event.request.destination === 'document')) {
+    event.respondWith(
+      fetch(event.request).then(networkResponse => {
+        // Save a copy in the cache for offline use
+        if (networkResponse && networkResponse.status === 200) {
+          const respClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, respClone));
+        }
+        return networkResponse;
+      }).catch(() => {
+        // If network fails, try cache fallback (index.html)
+        return caches.match('index.html');
+      })
+    );
+    return;
+  }
+
+  // For other requests (images, css, js), use cache-first then network and update cache
   event.respondWith(
     caches.match(event.request).then(cachedResponse => {
       if (cachedResponse) return cachedResponse;
@@ -54,7 +73,6 @@ self.addEventListener("fetch", event => {
         if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
           return networkResponse;
         }
-
         const responseClone = networkResponse.clone();
         caches.open(CACHE_NAME).then(cache => {
           cache.put(event.request, responseClone);
