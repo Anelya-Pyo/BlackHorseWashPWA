@@ -273,8 +273,31 @@ function showSection(id){
 function toggleMore(){
   const more = document.getElementById('more-modal');
   if(!more) return;
-  const open = more.classList.toggle('open');
-  more.setAttribute('aria-hidden', open ? 'false' : 'true');
+  const wasOpen = more.classList.contains('open');
+  if (wasOpen) {
+    // Closing the modal: ensure no element inside remains focused (accessibility)
+    const active = document.activeElement;
+    if (more.contains(active)) {
+      // move focus back to the FAB or to main content
+      const fab = document.querySelector('.fab-more');
+      if (fab) fab.focus();
+      else if (document.getElementById('home')) document.getElementById('home').focus();
+      else document.body.focus && document.body.focus();
+    }
+
+    more.classList.remove('open');
+    more.setAttribute('aria-hidden','true');
+    // Prefer using inert where supported to prevent focus; otherwise rely on aria-hidden
+    try { more.inert = true; } catch(e) { /* inert may not be supported */ }
+  } else {
+    // Opening the modal
+    more.classList.add('open');
+    more.setAttribute('aria-hidden','false');
+    try { more.inert = false; } catch(e) { }
+    // Move focus to the first focusable element inside the modal for keyboard users
+    const firstFocusable = more.querySelector('a, button, input, [tabindex]:not([tabindex="-1"])');
+    if (firstFocusable) firstFocusable.focus();
+  }
 }
 
 // Initialize active nav on load
