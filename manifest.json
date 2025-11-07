@@ -1,7 +1,7 @@
 {
   "name": "Black Horse Wash",
   "short_name": "BHW",
-  "start_url": "indexV4Multi-pages.html",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",

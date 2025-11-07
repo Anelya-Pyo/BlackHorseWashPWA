@@ -2,7 +2,7 @@
 
 const CACHE_NAME = "black-horse-wash-v1";
 const urlsToCache = [
-  "indexV4Multi-pages.html",
+  "index.html",
   "manifest.json",
   "image/logo.jpg",
   "image/CarWash.jpg",
