@@ -129,6 +129,10 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 .cart-modal .cart-footer { display:flex; justify-content:space-between; align-items:center; }
 .cart-modal button { background:#1e90ff; color:#fff; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; }
 
+/* quantity controls inside cart */
+.qty-btn { background:#fff; border:1px solid #e3e6ea; padding:4px 8px; border-radius:6px; cursor:pointer; color:#06314d; font-weight:600; }
+.qty-num { margin:0 8px; min-width:24px; display:inline-block; text-align:center; }
+
 @media(max-width:768px){ 
   .profile-grid { grid-template-columns:1fr; } 
   .photo-comparison { flex-direction:column; } 
@@ -357,7 +361,21 @@ function renderCart(){
     cart.forEach((item, idx)=>{
       const li = document.createElement('li');
       const priceText = item.price ? (item.price * (item.qty||1)).toFixed(2) + ' €' : '';
-      li.innerHTML = `<span>${item.name} <small style="color:#666">x${item.qty||1}${item.type==='subscription'?' • abonnement':''}</small></span><span>${priceText} <button onclick="removeCartItem(${idx})" style="margin-left:8px;background:transparent;border:none;color:#d00;cursor:pointer">Suppr</button></span>`;
+      li.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="flex:1">
+            <div style="font-weight:600">${item.name}${item.type==='subscription'? ' • abonnement':''}</div>
+            <div style="color:#666;font-size:12px;margin-top:4px">Prix unitaire: ${item.price? (item.price.toFixed(2)+' €') : '-'}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="qty-btn" onclick="changeCartQty(${idx},-1)" aria-label="Réduire la quantité">−</button>
+            <div class="qty-num">${item.qty||1}</div>
+            <button class="qty-btn" onclick="changeCartQty(${idx},1)" aria-label="Augmenter la quantité">+</button>
+            <div style="width:10px"></div>
+            <div style="text-align:right">${priceText}<br><button onclick="removeCartItem(${idx})" style="margin-top:6px;background:transparent;border:none;color:#d00;cursor:pointer">Suppr</button></div>
+          </div>
+        </div>
+      `;
       list.appendChild(li);
       total += (item.price||0) * (item.qty||1);
     });
@@ -368,6 +386,20 @@ function renderCart(){
 function removeCartItem(index){
   if(index < 0 || index >= cart.length) return;
   cart.splice(index,1);
+  try{ localStorage.setItem('bhw_cart', JSON.stringify(cart)); } catch(e){}
+  cartCount = cart.reduce((s,i)=>s + (i.qty||1), 0);
+  document.getElementById('cart-count').textContent = cartCount;
+  renderCart();
+}
+
+function changeCartQty(index, delta){
+  if(index < 0 || index >= cart.length) return;
+  const item = cart[index];
+  item.qty = (item.qty || 1) + delta;
+  if(item.qty <= 0){
+    // remove item if quantity drops to 0
+    cart.splice(index,1);
+  }
   try{ localStorage.setItem('bhw_cart', JSON.stringify(cart)); } catch(e){}
   cartCount = cart.reduce((s,i)=>s + (i.qty||1), 0);
   document.getElementById('cart-count').textContent = cartCount;
