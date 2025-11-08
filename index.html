@@ -129,6 +129,12 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 .cart-modal .cart-footer { display:flex; justify-content:space-between; align-items:center; }
 .cart-modal button { background:#1e90ff; color:#fff; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; }
 
+/* subscription badge */
+.badge-sub { display:inline-block; background:#e6f2ff; color:#0b61a6; font-size:11px; padding:2px 8px; border-radius:999px; margin-left:6px; vertical-align:middle; }
+
+/* helper text under Abonnements */
+.ab-help { text-align:center; color:#06314d; font-size:14px; margin-top:6px; margin-bottom:12px; }
+
 /* quantity controls inside cart */
 .qty-btn { background:#fff; border:1px solid #e3e6ea; padding:4px 8px; border-radius:6px; cursor:pointer; color:#06314d; font-weight:600; }
 .qty-num { margin:0 8px; min-width:24px; display:inline-block; text-align:center; }
@@ -237,10 +243,11 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   <!-- ABONNEMENTS -->
   <section id="abonnements">
     <h2>Abonnements</h2>
+    <p class="ab-help">Les abonnements doivent être payés pour être activés. Ils apparaîtront dans votre profil après le paiement.</p>
     <div class="abonnement-grid">
-      <div class="abonnement-item"><img src="image/abonnement-basic.jpg" alt="Basic"><p>Basic - 10€</p><button data-price="10" onclick="addSubscription(this,'Basic',10)">S'abonner</button></div>
-      <div class="abonnement-item"><img src="image/abonnement-medium.jpg" alt="Medium"><p>Medium - 20€</p><button data-price="20" onclick="addSubscription(this,'Medium',20)">S'abonner</button></div>
-      <div class="abonnement-item"><img src="image/abonnement-premium.jpg" alt="Premium"><p>Premium - 30€</p><button data-price="30" onclick="addSubscription(this,'Premium',30)">S'abonner</button></div>
+      <div class="abonnement-item"><img src="image/abonnement-basic.jpg" alt="Basic"><p>Basic - 10€</p><button data-price="10" onclick="addSubscription(this,'Basic',10)">Ajouter au panier (abonnement)</button></div>
+      <div class="abonnement-item"><img src="image/abonnement-medium.jpg" alt="Medium"><p>Medium - 20€</p><button data-price="20" onclick="addSubscription(this,'Medium',20)">Ajouter au panier (abonnement)</button></div>
+      <div class="abonnement-item"><img src="image/abonnement-premium.jpg" alt="Premium"><p>Premium - 30€</p><button data-price="30" onclick="addSubscription(this,'Premium',30)">Ajouter au panier (abonnement)</button></div>
     </div>
   </section>
 </main>
@@ -361,10 +368,11 @@ function renderCart(){
     cart.forEach((item, idx)=>{
       const li = document.createElement('li');
       const priceText = item.price ? (item.price * (item.qty||1)).toFixed(2) + ' €' : '';
+      const badge = item.type === 'subscription' ? '<span class="badge-sub">Abonnement</span>' : '';
       li.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center">
           <div style="flex:1">
-            <div style="font-weight:600">${item.name}${item.type==='subscription'? ' • abonnement':''}</div>
+            <div style="font-weight:600">${item.name} ${badge}</div>
             <div style="color:#666;font-size:12px;margin-top:4px">Prix unitaire: ${item.price? (item.price.toFixed(2)+' €') : '-'}</div>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
