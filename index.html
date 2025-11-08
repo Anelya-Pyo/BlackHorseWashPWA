@@ -433,15 +433,19 @@ function checkout(){
 }
 
 function addSubscription(btnOrName, subName, price){
+  // Clicking "S'abonner" should add the subscription to the cart (so the client pays),
+  // not directly to the profile. After checkout subscription items will be moved to profile.
   // Support calling addSubscription(this,'Basic',10) or addSubscription('Basic',10)
+  let btn = null;
   let name = subName;
-  if (typeof btnOrName === 'string') name = btnOrName;
-  // if first arg is element, use provided subName param
+  if (typeof btnOrName === 'object' && btnOrName !== null && btnOrName.tagName) {
+    btn = btnOrName;
+  } else if (typeof btnOrName === 'string') {
+    name = btnOrName;
+  }
   const sName = name || subName;
-  subscriptions.push({ name: sName, price: price || 0, date: new Date().toISOString() });
-  try { localStorage.setItem('bhw_subscriptions', JSON.stringify(subscriptions)); } catch(e){ console.warn('localStorage', e); }
-  renderSubscriptions();
-  showToast("Abonnement '"+sName+"' ajouté à votre profil");
+  // Add to cart as subscription type; addToCart will persist and update UI
+  addToCart(btn || sName, sName, price, 'subscription');
 }
 
 function renderSubscriptions(){
