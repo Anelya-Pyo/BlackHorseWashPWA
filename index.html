@@ -143,7 +143,7 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 
 <header>
   <img src="image/logo.jpg" alt="Logo Black Horse Wash">
-  <div class="cart-summary" onclick="alert('Panier: '+cartCount+' produits')">Panier: <span id="cart-count">0</span></div>
+  <div class="cart-summary" onclick="showCart()" role="button" aria-label="Ouvrir le panier">Panier: <span id="cart-count">0</span></div>
 </header>
 
 <main>
@@ -161,7 +161,6 @@ h1,h2 { margin-bottom:15px; text-align:center; }
       <div><label>Véhicule</label><input type="text" placeholder="Modèle du véhicule"></div>
       <div><label>Adresse</label><input type="text" placeholder="Adresse"></div>
       <div><label>Prochain RDV</label><input type="datetime-local"></div>
-      <div><label>Abonnement</label><input type="text" placeholder="Nom de l'abonnement choisi"></div>
       <div style="grid-column:1/-1;">
         <h3>Abonnements actifs</h3>
         <ul id="subscriptions-list" style="margin:8px 0 0 0;padding-left:18px;"></ul>
@@ -175,21 +174,21 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   <!-- SERVICES -->
   <section id="services">
     <h2>Services</h2>
-    <div class="services-grid">
-      <div class="service-item"><img src="image/interieur-voiture.jpg" alt="Intérieur Voiture" loading="lazy"><h3>Intérieur Voiture</h3><p>20€</p></div>
-      <div class="service-item"><img src="image/exterieur-voiture.jpg" alt="Extérieur Voiture" loading="lazy"><h3>Extérieur Voiture</h3><p>15€</p></div>
-      <div class="service-item"><img src="image/lavage-les-2.jpg" alt="Nettoyage Complet" loading="lazy"><h3>Nettoyage Complet</h3><p>30€</p></div>
-    </div>
+      <div class="services-grid">
+        <div class="service-item"><img src="image/interieur-voiture.jpg" alt="Intérieur Voiture" loading="lazy"><h3>Intérieur Voiture</h3><p>20€</p></div>
+        <div class="service-item"><img src="image/exterieur-voiture.jpg" alt="Extérieur Voiture" loading="lazy"><h3>Extérieur Voiture</h3><p>15€</p></div>
+        <div class="service-item"><img src="image/lavage-les-2.jpg" alt="Nettoyage Complet" loading="lazy"><h3>Nettoyage Complet</h3><p>30€</p></div>
+      </div>
   </section>
 
   <!-- PRODUITS -->
   <section id="products">
     <h2>Produits à la vente</h2>
-    <div class="products-grid">
-  <div class="product-item"><img src="image/shampoo-car.jpg" alt="Shampooing" loading="lazy"><h3>Shampooing</h3><p>10 €</p><button onclick="addToCart(this,'Shampooing')">Ajouter au panier</button></div>
-  <div class="product-item"><img src="image/lustrant-voiture.jpg" alt="Lustrant" loading="lazy"><h3>Lustrant</h3><p>15 €</p><button onclick="addToCart(this,'Lustrant')">Ajouter au panier</button></div>
-  <div class="product-item"><img src="image/micro-fibre.jpg" alt="Microfibre" loading="lazy"><h3>Microfibre</h3><p>5 €</p><button onclick="addToCart(this,'Microfibre')">Ajouter au panier</button></div>
-    </div>
+      <div class="products-grid">
+    <div class="product-item"><img src="image/shampoo-car.jpg" alt="Shampooing" loading="lazy"><h3>Shampooing</h3><p>10 €</p><button data-price="10" onclick="addToCart(this,'Shampooing')">Ajouter au panier</button></div>
+    <div class="product-item"><img src="image/lustrant-voiture.jpg" alt="Lustrant" loading="lazy"><h3>Lustrant</h3><p>15 €</p><button data-price="15" onclick="addToCart(this,'Lustrant')">Ajouter au panier</button></div>
+    <div class="product-item"><img src="image/micro-fibre.jpg" alt="Microfibre" loading="lazy"><h3>Microfibre</h3><p>5 €</p><button data-price="5" onclick="addToCart(this,'Microfibre')">Ajouter au panier</button></div>
+      </div>
   </section>
 
   <!-- RDV -->
@@ -235,9 +234,9 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   <section id="abonnements">
     <h2>Abonnements</h2>
     <div class="abonnement-grid">
-      <div class="abonnement-item"><img src="image/abonnement-basic.jpg" alt="Basic"><p>Basic - 10€</p><button onclick="addSubscription(this,'Basic',10)">S'abonner</button></div>
-      <div class="abonnement-item"><img src="image/abonnement-medium.jpg" alt="Medium"><p>Medium - 20€</p><button onclick="addSubscription(this,'Medium',20)">S'abonner</button></div>
-      <div class="abonnement-item"><img src="image/abonnement-premium.jpg" alt="Premium"><p>Premium - 30€</p><button onclick="addSubscription(this,'Premium',30)">S'abonner</button></div>
+      <div class="abonnement-item"><img src="image/abonnement-basic.jpg" alt="Basic"><p>Basic - 10€</p><button data-price="10" onclick="addSubscription(this,'Basic',10)">S'abonner</button></div>
+      <div class="abonnement-item"><img src="image/abonnement-medium.jpg" alt="Medium"><p>Medium - 20€</p><button data-price="20" onclick="addSubscription(this,'Medium',20)">S'abonner</button></div>
+      <div class="abonnement-item"><img src="image/abonnement-premium.jpg" alt="Premium"><p>Premium - 30€</p><button data-price="30" onclick="addSubscription(this,'Premium',30)">S'abonner</button></div>
     </div>
   </section>
 </main>
@@ -310,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderCart();
   renderSubscriptions();
 });
-function addToCart(buttonOrName, productName){
+function addToCart(buttonOrName, productName, priceParam, typeParam){
   // Support calling addToCart(this, 'Name') or addToCart('Name') for backwards compatibility
   let btn = null;
   let name = productName;
@@ -320,11 +319,17 @@ function addToCart(buttonOrName, productName){
     name = buttonOrName;
   }
 
-  // update cart data structure and persist
+  // determine price and type
   const nameKey = name || productName;
-  const existing = cart.find(i=>i.name === nameKey);
+  let price = 0;
+  if (priceParam !== undefined) price = Number(priceParam) || 0;
+  else if (btn && btn.dataset && btn.dataset.price) price = Number(btn.dataset.price) || 0;
+  const type = typeParam || (btn && btn.dataset && btn.dataset.type) || 'product';
+
+  // update cart data structure and persist
+  const existing = cart.find(i=>i.name === nameKey && i.type === type);
   if (existing) existing.qty = (existing.qty||1)+1;
-  else cart.push({ name: nameKey, qty: 1, price: 0 });
+  else cart.push({ name: nameKey, qty: 1, price: price, type: type });
   try { localStorage.setItem('bhw_cart', JSON.stringify(cart)); } catch(e){ console.warn('LocalStorage error', e); }
   cartCount = cart.reduce((s,i)=>s + (i.qty||1), 0);
   document.getElementById('cart-count').textContent = cartCount;
@@ -349,14 +354,24 @@ function renderCart(){
   if(cart.length === 0){
     const li = document.createElement('li'); li.textContent = 'Panier vide'; list.appendChild(li); total = 0;
   } else {
-    cart.forEach(item=>{
+    cart.forEach((item, idx)=>{
       const li = document.createElement('li');
-      li.innerHTML = `<span>${item.name} x${item.qty||1}</span><span>${item.price? (item.price*item.qty).toFixed(2)+ ' €' : ''}</span>`;
+      const priceText = item.price ? (item.price * (item.qty||1)).toFixed(2) + ' €' : '';
+      li.innerHTML = `<span>${item.name} <small style="color:#666">x${item.qty||1}${item.type==='subscription'?' • abonnement':''}</small></span><span>${priceText} <button onclick="removeCartItem(${idx})" style="margin-left:8px;background:transparent;border:none;color:#d00;cursor:pointer">Suppr</button></span>`;
       list.appendChild(li);
       total += (item.price||0) * (item.qty||1);
     });
   }
   totalEl.textContent = `Total: ${total.toFixed(2)} €`;
+}
+
+function removeCartItem(index){
+  if(index < 0 || index >= cart.length) return;
+  cart.splice(index,1);
+  try{ localStorage.setItem('bhw_cart', JSON.stringify(cart)); } catch(e){}
+  cartCount = cart.reduce((s,i)=>s + (i.qty||1), 0);
+  document.getElementById('cart-count').textContent = cartCount;
+  renderCart();
 }
 
 function showCart(){
@@ -368,12 +383,20 @@ function showCart(){
 }
 
 function checkout(){
-  // Placeholder checkout flow — clear cart locally
+  // Simulated checkout: process subscriptions into profile, then clear cart
   if(cart.length === 0){ showToast('Le panier est vide'); return; }
+  // Move subscription items to subscriptions list
+  const subsToAdd = cart.filter(i=>i.type === 'subscription');
+  if(subsToAdd.length){
+    subsToAdd.forEach(s => subscriptions.push({ name: s.name, price: s.price || 0, date: new Date().toISOString() }));
+    try{ localStorage.setItem('bhw_subscriptions', JSON.stringify(subscriptions)); } catch(e){}
+  }
+  // In a real flow you'd create an order and charge the user here
   cart = [];
   try{ localStorage.setItem('bhw_cart', JSON.stringify(cart)); } catch(e){}
   cartCount = 0; document.getElementById('cart-count').textContent = cartCount;
   renderCart();
+  renderSubscriptions();
   showToast('Merci pour votre achat ! (simulé)');
 }
 
@@ -394,9 +417,19 @@ function renderSubscriptions(){
   if(!el) return;
   el.innerHTML = '';
   if(!subscriptions || subscriptions.length === 0){ el.innerHTML = '<li>Aucun abonnement</li>'; return; }
-  subscriptions.forEach(s=>{
-    const li = document.createElement('li'); li.textContent = `${s.name} (${new Date(s.date).toLocaleDateString()})`; el.appendChild(li);
+  subscriptions.forEach((s, idx)=>{
+    const li = document.createElement('li');
+    li.innerHTML = `${s.name} (${new Date(s.date).toLocaleDateString()}) <button onclick="removeSubscription(${idx})" style="margin-left:8px;background:transparent;border:none;color:#d00;cursor:pointer">Suppr</button>`;
+    el.appendChild(li);
   });
+}
+
+function removeSubscription(index){
+  if(!subscriptions || index < 0 || index >= subscriptions.length) return;
+  subscriptions.splice(index,1);
+  try{ localStorage.setItem('bhw_subscriptions', JSON.stringify(subscriptions)); } catch(e){}
+  renderSubscriptions();
+  showToast('Abonnement supprimé');
 }
 
 // small toast implementation
