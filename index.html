@@ -9,7 +9,7 @@
 body { margin:0; padding:0; font-family:Arial,sans-serif; background:#f5f5f5; color:#000; }
 header { display:flex; align-items:center; justify-content:center; /* brighter bluer branding */ background: linear-gradient(90deg,#2b8fe6 0%, #66b3ff 100%); padding:12px 20px; position:relative; }
 header img { height:84px; width:auto; }
-.cart-summary { position:absolute; right:20px; top:20px; color:#fff; cursor:pointer; font-weight:bold; }
+.cart-summary { position:absolute; right:16px; top:16px; color:#06314d; cursor:pointer; font-weight:700; background: rgba(255,255,255,0.92); padding:6px 10px; border-radius:10px; box-shadow:0 6px 14px rgba(3,34,56,0.12); }
 
 main { padding:20px; margin-bottom:70px; }
 section { display:none; padding:20px; background:#fff; border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,0.1); }
@@ -46,7 +46,7 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 .bottom-nav .nav-item .label { font-size:11px; line-height:1; }
 
 /* Floating FAB-style "Plus" button */
-.fab-more { width:44px; height:44px; border-radius:50%; background:#d4af37; display:flex; align-items:center; justify-content:center; color:#000; font-weight:700; box-shadow:0 8px 16px rgba(0,0,0,0.25); cursor:pointer; }
+.fab-more { width:44px; height:44px; border-radius:50%; background:#1e90ff; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; box-shadow:0 8px 16px rgba(0,0,0,0.12); cursor:pointer; }
 
 /* Modal/panel for additional links */
 .more-modal { position:fixed; left:50%; transform:translateX(-50%) translateY(10px) scale(.98); bottom:86px; width:92%; max-width:420px; background:#fff; border-radius:12px; padding:12px; box-shadow:0 14px 40px rgba(0,0,0,0.28); z-index:120; opacity:0; visibility:hidden; transition:transform .26s cubic-bezier(.22,.9,.26,1), opacity .22s ease; transform-origin:50% 100%; }
@@ -66,7 +66,7 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 }
 
 .product-item button {
-  background:#d4af37; border:none; color:#000; padding:8px 12px; border-radius:8px; cursor:pointer; transition:transform .12s ease, box-shadow .12s ease;
+  background:#1e90ff; border:none; color:#fff; padding:8px 12px; border-radius:8px; cursor:pointer; transition:transform .12s ease, box-shadow .12s ease;
 }
 .product-item button:hover { transform:translateY(-2px); box-shadow:0 6px 12px rgba(0,0,0,0.12); }
 
@@ -85,7 +85,7 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 /* allow svg sizing in nav */
 .bottom-nav .nav-item svg { width:28px; height:28px; display:block; }
 .bottom-nav .nav-item { color:#fff; }
-.bottom-nav .nav-item.active svg { fill:#d4af37; }
+.bottom-nav .nav-item.active svg { fill:#66b3ff; }
 
 @media(max-width:480px){
   .bottom-nav { width:calc(100% - 36px); left:18px; transform:none; border-radius:12px; }
@@ -115,10 +115,19 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   display: block;
   width: 80px;
   height: 4px;
-  background-color: #d4af37;
+  background-color: #1e90ff;
   margin: 10px auto 0;
   border-radius: 2px;
 }
+
+/* Cart modal */
+.cart-modal { position:fixed; right:16px; top:64px; width:320px; max-width:90vw; background:#fff; border-radius:12px; box-shadow:0 18px 40px rgba(3,34,56,0.18); z-index:130; padding:12px; display:none; }
+.cart-modal.open { display:block; }
+.cart-modal h4 { margin:0 0 8px 0; }
+.cart-modal .cart-items { max-height:260px; overflow:auto; margin-bottom:8px; }
+.cart-modal .cart-items li { display:flex; justify-content:space-between; padding:8px 6px; border-bottom:1px solid #f1f1f1; }
+.cart-modal .cart-footer { display:flex; justify-content:space-between; align-items:center; }
+.cart-modal button { background:#1e90ff; color:#fff; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; }
 
 @media(max-width:768px){ 
   .profile-grid { grid-template-columns:1fr; } 
@@ -153,6 +162,10 @@ h1,h2 { margin-bottom:15px; text-align:center; }
       <div><label>Adresse</label><input type="text" placeholder="Adresse"></div>
       <div><label>Prochain RDV</label><input type="datetime-local"></div>
       <div><label>Abonnement</label><input type="text" placeholder="Nom de l'abonnement choisi"></div>
+      <div style="grid-column:1/-1;">
+        <h3>Abonnements actifs</h3>
+        <ul id="subscriptions-list" style="margin:8px 0 0 0;padding-left:18px;"></ul>
+      </div>
       <div><label>Points fidélité</label>
         <div class="progress-container"><div class="progress-bar" style="width:40%;">40 pts</div></div>
       </div>
@@ -222,9 +235,9 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   <section id="abonnements">
     <h2>Abonnements</h2>
     <div class="abonnement-grid">
-      <div class="abonnement-item"><img src="image/abonnement-basic.jpg" alt="Basic"><p>Basic - 10€</p></div>
-      <div class="abonnement-item"><img src="image/abonnement-medium.jpg" alt="Medium"><p>Medium - 20€</p></div>
-      <div class="abonnement-item"><img src="image/abonnement-premium.jpg" alt="Premium"><p>Premium - 30€</p></div>
+      <div class="abonnement-item"><img src="image/abonnement-basic.jpg" alt="Basic"><p>Basic - 10€</p><button onclick="addSubscription(this,'Basic',10)">S'abonner</button></div>
+      <div class="abonnement-item"><img src="image/abonnement-medium.jpg" alt="Medium"><p>Medium - 20€</p><button onclick="addSubscription(this,'Medium',20)">S'abonner</button></div>
+      <div class="abonnement-item"><img src="image/abonnement-premium.jpg" alt="Premium"><p>Premium - 30€</p><button onclick="addSubscription(this,'Premium',30)">S'abonner</button></div>
     </div>
   </section>
 </main>
@@ -272,10 +285,31 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   </div>
 </div>
 
+<!-- Cart modal -->
+<div id="cart-modal" class="cart-modal" aria-hidden="true">
+  <h4>Panier</h4>
+  <ul class="cart-items" id="cart-items-list"></ul>
+  <div class="cart-footer">
+    <div id="cart-total">Total: 0 €</div>
+    <div>
+      <button onclick="checkout()">Payer</button>
+    </div>
+  </div>
+</div>
+
 <footer>© 2025 Black Horse Wash</footer>
 
 <script>
 let cartCount = 0;
+let cart = JSON.parse(localStorage.getItem('bhw_cart') || '[]');
+let subscriptions = JSON.parse(localStorage.getItem('bhw_subscriptions') || '[]');
+// initialize cartCount from stored cart
+cartCount = cart.reduce((s,i)=>s + (i.qty||1), 0);
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('cart-count').textContent = cartCount;
+  renderCart();
+  renderSubscriptions();
+});
 function addToCart(buttonOrName, productName){
   // Support calling addToCart(this, 'Name') or addToCart('Name') for backwards compatibility
   let btn = null;
@@ -286,7 +320,13 @@ function addToCart(buttonOrName, productName){
     name = buttonOrName;
   }
 
-  cartCount++;
+  // update cart data structure and persist
+  const nameKey = name || productName;
+  const existing = cart.find(i=>i.name === nameKey);
+  if (existing) existing.qty = (existing.qty||1)+1;
+  else cart.push({ name: nameKey, qty: 1, price: 0 });
+  try { localStorage.setItem('bhw_cart', JSON.stringify(cart)); } catch(e){ console.warn('LocalStorage error', e); }
+  cartCount = cart.reduce((s,i)=>s + (i.qty||1), 0);
   document.getElementById('cart-count').textContent = cartCount;
 
   // animate button if provided
@@ -297,6 +337,66 @@ function addToCart(buttonOrName, productName){
 
   // Friendly toast instead of alert
   showToast((name || productName) + " ajouté au panier !");
+  renderCart();
+}
+
+function renderCart(){
+  const list = document.getElementById('cart-items-list');
+  const totalEl = document.getElementById('cart-total');
+  if(!list) return;
+  list.innerHTML = '';
+  let total = 0;
+  if(cart.length === 0){
+    const li = document.createElement('li'); li.textContent = 'Panier vide'; list.appendChild(li); total = 0;
+  } else {
+    cart.forEach(item=>{
+      const li = document.createElement('li');
+      li.innerHTML = `<span>${item.name} x${item.qty||1}</span><span>${item.price? (item.price*item.qty).toFixed(2)+ ' €' : ''}</span>`;
+      list.appendChild(li);
+      total += (item.price||0) * (item.qty||1);
+    });
+  }
+  totalEl.textContent = `Total: ${total.toFixed(2)} €`;
+}
+
+function showCart(){
+  const modal = document.getElementById('cart-modal');
+  if(!modal) return;
+  const opened = modal.classList.toggle('open');
+  modal.setAttribute('aria-hidden', opened ? 'false' : 'true');
+  if(opened) renderCart();
+}
+
+function checkout(){
+  // Placeholder checkout flow — clear cart locally
+  if(cart.length === 0){ showToast('Le panier est vide'); return; }
+  cart = [];
+  try{ localStorage.setItem('bhw_cart', JSON.stringify(cart)); } catch(e){}
+  cartCount = 0; document.getElementById('cart-count').textContent = cartCount;
+  renderCart();
+  showToast('Merci pour votre achat ! (simulé)');
+}
+
+function addSubscription(btnOrName, subName, price){
+  // Support calling addSubscription(this,'Basic',10) or addSubscription('Basic',10)
+  let name = subName;
+  if (typeof btnOrName === 'string') name = btnOrName;
+  // if first arg is element, use provided subName param
+  const sName = name || subName;
+  subscriptions.push({ name: sName, price: price || 0, date: new Date().toISOString() });
+  try { localStorage.setItem('bhw_subscriptions', JSON.stringify(subscriptions)); } catch(e){ console.warn('localStorage', e); }
+  renderSubscriptions();
+  showToast("Abonnement '"+sName+"' ajouté à votre profil");
+}
+
+function renderSubscriptions(){
+  const el = document.getElementById('subscriptions-list');
+  if(!el) return;
+  el.innerHTML = '';
+  if(!subscriptions || subscriptions.length === 0){ el.innerHTML = '<li>Aucun abonnement</li>'; return; }
+  subscriptions.forEach(s=>{
+    const li = document.createElement('li'); li.textContent = `${s.name} (${new Date(s.date).toLocaleDateString()})`; el.appendChild(li);
+  });
 }
 
 // small toast implementation
