@@ -131,6 +131,8 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 
 /* subscription badge */
 .badge-sub { display:inline-block; background:#e6f2ff; color:#0b61a6; font-size:11px; padding:2px 8px; border-radius:999px; margin-left:6px; vertical-align:middle; }
+.badge-sub[title]{ position:relative; }
+.badge-sub[title]:hover::after{ content: attr(title); position:absolute; left:50%; transform:translateX(-50%); bottom:calc(100% + 8px); background:#06314d; color:#fff; padding:6px 8px; font-size:12px; border-radius:6px; white-space:nowrap; box-shadow:0 6px 18px rgba(3,34,56,0.12); }
 
 /* helper text under Abonnements */
 .ab-help { text-align:center; color:#06314d; font-size:14px; margin-top:6px; margin-bottom:12px; }
@@ -226,6 +228,10 @@ h1,h2 { margin-bottom:15px; text-align:center; }
     <hr>
     <label><input type="checkbox" id="admin-mode" onchange="toggleAdminMode(this.checked)"> Mode patron (afficher demandes en attente)</label>
     <div id="pending-rdvs" style="margin-top:12px; display:none;"></div>
+    <div id="my-pending-container" style="margin-top:12px;">
+      <h3>Mes demandes en attente</h3>
+      <div id="my-pending-rdvs">Vous n'avez pas encore de demande.</div>
+    </div>
   </section>
 
   <!-- AVANCÉ -->
@@ -374,7 +380,7 @@ function renderCart(){
     cart.forEach((item, idx)=>{
       const li = document.createElement('li');
       const priceText = item.price ? (item.price * (item.qty||1)).toFixed(2) + ' €' : '';
-      const badge = item.type === 'subscription' ? '<span class="badge-sub">Abonnement</span>' : '';
+  const badge = item.type === 'subscription' ? '<span class="badge-sub" title="Abonnement — nécessite paiement et activation après paiement">Abonnement</span>' : '';
       li.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center">
           <div style="flex:1">
@@ -589,15 +595,25 @@ function submitRdv(){
   const slot = document.getElementById('rdv-slot').value;
   const payment = document.getElementById('rdv-payment').value;
   if(!client || !vehicle || !slot){ showToast('Veuillez renseigner nom, véhicule et choisir une plage horaire'); return; }
+  // prevent collisions: check pending requests and confirmed next RDV
   const pending = JSON.parse(localStorage.getItem('bhw_rdv_pending')||'[]');
-  pending.push({ client, vehicle, service, slot, payment, created: new Date().toISOString() });
+  const next = JSON.parse(localStorage.getItem('bhw_next_rdv')||'null');
+  if(pending.some(p => p.slot === slot) || (next && next.slot === slot)){
+    showToast('Ce créneau est déjà demandé ou confirmé — choisissez un autre créneau');
+    return;
+  }
+  const created = new Date().toISOString();
+  pending.push({ client, vehicle, service, slot, payment, created });
   try{ localStorage.setItem('bhw_rdv_pending', JSON.stringify(pending)); }catch(e){}
+  // remember last client on this device to show "Mes demandes"
+  try{ localStorage.setItem('bhw_last_client', client); }catch(e){}
   showToast('RDV demandé — en attente de validation');
   // clear simple fields
   document.getElementById('rdv-client').value = '';
   document.getElementById('rdv-vehicle').value = '';
-  // if admin mode is on, re-render pending
+  // refresh lists
   if(document.getElementById('admin-mode') && document.getElementById('admin-mode').checked) renderPendingRdv();
+  renderMyPendingRdv();
 }
 
 function toggleAdminMode(on){
@@ -605,6 +621,34 @@ function toggleAdminMode(on){
   if(!container) return;
   container.style.display = on ? 'block' : 'none';
   if(on) renderPendingRdv();
+}
+
+function renderMyPendingRdv(){
+  const container = document.getElementById('my-pending-rdvs');
+  if(!container) return;
+  const lastClient = localStorage.getItem('bhw_last_client') || document.getElementById('rdv-client').value.trim();
+  const pending = JSON.parse(localStorage.getItem('bhw_rdv_pending')||'[]');
+  const mine = pending.filter(p => lastClient && p.client === lastClient);
+  if(!mine || mine.length === 0){ container.innerHTML = "Aucune demande en attente pour votre nom."; return; }
+  container.innerHTML = '';
+  mine.forEach(p => {
+    const d = new Date(p.slot);
+    const div = document.createElement('div');
+    div.style.border='1px dashed #cfe8ff'; div.style.padding='8px'; div.style.marginBottom='8px'; div.style.borderRadius='8px';
+    div.innerHTML = `<div style="font-weight:700">${p.client} — ${p.vehicle}</div><div style="color:#444;font-size:13px">${d.toLocaleString()} • ${p.service}</div><div style="margin-top:8px"><button onclick="cancelPending('${p.created}')" style="background:transparent;border:1px solid #d00;color:#d00;padding:6px 10px;border-radius:6px;cursor:pointer">Annuler la demande</button></div>`;
+    container.appendChild(div);
+  });
+}
+
+function cancelPending(created){
+  const pending = JSON.parse(localStorage.getItem('bhw_rdv_pending')||'[]');
+  const idx = pending.findIndex(p => p.created === created);
+  if(idx === -1) return;
+  pending.splice(idx,1);
+  try{ localStorage.setItem('bhw_rdv_pending', JSON.stringify(pending)); }catch(e){}
+  showToast('Demande annulée');
+  renderPendingRdv();
+  renderMyPendingRdv();
 }
 
 function renderPendingRdv(){
@@ -627,10 +671,14 @@ function renderPendingRdv(){
 function acceptRdv(index){
   const pending = JSON.parse(localStorage.getItem('bhw_rdv_pending')||'[]');
   if(index < 0 || index >= pending.length) return;
-  const item = pending.splice(index,1)[0];
+  const item = pending[index];
+  const existingNext = JSON.parse(localStorage.getItem('bhw_next_rdv')||'null');
+  if(existingNext && existingNext.slot === item.slot){ showToast('Ce créneau est déjà confirmé'); return; }
+  // remove item from pending and keep it as accepted
+  pending.splice(index,1);
   // save confirmed appointment as next RDV
-  const next = { client: item.client, vehicle: item.vehicle, service: item.service, slot: item.slot, payment: item.payment, acceptedAt: new Date().toISOString() };
-  try{ localStorage.setItem('bhw_next_rdv', JSON.stringify(next)); } catch(e){}
+  const newNext = { client: item.client, vehicle: item.vehicle, service: item.service, slot: item.slot, payment: item.payment, acceptedAt: new Date().toISOString() };
+  try{ localStorage.setItem('bhw_next_rdv', JSON.stringify(newNext)); } catch(e){}
   try{ localStorage.setItem('bhw_rdv_pending', JSON.stringify(pending)); } catch(e){}
   // update profile Prochain RDV field if present
   const prof = document.querySelector('#profil input[type=datetime-local]');
@@ -662,6 +710,7 @@ function loadNextRdvToProfile(){
 document.addEventListener('DOMContentLoaded', ()=>{
   try{ generateSlots(); }catch(e){}
   try{ loadNextRdvToProfile(); }catch(e){}
+  try{ renderMyPendingRdv(); }catch(e){}
 });
 </script>
 
