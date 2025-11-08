@@ -7,8 +7,8 @@
 <link rel="manifest" href="manifest.json">
 <style>
 body { margin:0; padding:0; font-family:Arial,sans-serif; background:#f5f5f5; color:#000; }
-header { display:flex; align-items:center; justify-content:center; /* bluer branding */ background: linear-gradient(90deg,#0f4c81 0%, #1e90ff 100%); padding:12px 20px; position:relative; }
-header img { height:84px; width:auto; border-radius:6px; }
+header { display:flex; align-items:center; justify-content:center; /* brighter bluer branding */ background: linear-gradient(90deg,#2b8fe6 0%, #66b3ff 100%); padding:12px 20px; position:relative; }
+header img { height:84px; width:auto; }
 .cart-summary { position:absolute; right:20px; top:20px; color:#fff; cursor:pointer; font-weight:bold; }
 
 main { padding:20px; margin-bottom:70px; }
@@ -39,10 +39,10 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 .photo-comparison img { width:48%; height:auto; border-radius:8px; }
 
 /* Bottom navigation - redesigned */
-.bottom-nav { position:fixed; left:50%; transform:translateX(-50%); bottom:18px; background:linear-gradient(135deg,#111, #222); padding:8px 14px; border-radius:40px; display:flex; gap:18px; align-items:center; box-shadow:0 8px 20px rgba(0,0,0,0.25); z-index:110; }
+.bottom-nav { position:fixed; left:50%; transform:translateX(-50%); bottom:18px; background:linear-gradient(90deg,#0f4c81 0%, #1e90ff 100%); padding:8px 14px; border-radius:40px; display:flex; gap:18px; align-items:center; box-shadow:0 8px 20px rgba(11,97,166,0.18); z-index:110; }
 .bottom-nav .nav-item { color:#fff; text-decoration:none; text-align:center; font-size:12px; display:flex; flex-direction:column; align-items:center; gap:6px; width:56px; padding:6px 4px; border-radius:12px; transition:transform .18s ease, background .18s ease; }
 .bottom-nav .nav-item img { width:28px; height:28px; border-radius:6px; object-fit:cover; }
-.bottom-nav .nav-item.active { background:rgba(212,175,55,0.12); transform:translateY(-4px) scale(1.03); box-shadow:0 6px 12px rgba(0,0,0,0.25); }
+.bottom-nav .nav-item.active { background:rgba(212,175,55,0.12); transform:translateY(-4px) scale(1.03); box-shadow:0 8px 18px rgba(11,97,166,0.22); }
 .bottom-nav .nav-item .label { font-size:11px; line-height:1; }
 
 /* Floating FAB-style "Plus" button */
