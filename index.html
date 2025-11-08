@@ -204,22 +204,28 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   <!-- RDV -->
   <section id="rdv">
     <h2>Demande de RDV</h2>
-    <label>Client</label><input type="text">
-    <label>Véhicule</label><input type="text">
+    <label>Client</label><input id="rdv-client" type="text" placeholder="Nom du client">
+    <label>Véhicule</label><input id="rdv-vehicle" type="text" placeholder="Modèle du véhicule">
     <label>Service demandé</label>
-    <select>
+    <select id="rdv-service">
       <option>Intérieur Voiture</option>
       <option>Extérieur Voiture</option>
       <option>Nettoyage Complet</option>
       <option>Options (Siège bébé, poils animaux)</option>
     </select>
+    <label>Choisir une date/une plage horaire</label>
+    <select id="rdv-slot"></select>
     <label>Paiement</label>
-    <select>
+    <select id="rdv-payment">
       <option>Carte bancaire</option>
       <option>Espèces</option>
       <option>PayPal</option>
     </select>
-    <button>Réserver</button>
+    <div style="margin-top:10px"><button onclick="submitRdv()">Demander RDV</button></div>
+
+    <hr>
+    <label><input type="checkbox" id="admin-mode" onchange="toggleAdminMode(this.checked)"> Mode patron (afficher demandes en attente)</label>
+    <div id="pending-rdvs" style="margin-top:12px; display:none;"></div>
   </section>
 
   <!-- AVANCÉ -->
@@ -555,6 +561,108 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(() => console.log("✅ Service Worker enregistré"))
       .catch(err => console.error("❌ Erreur SW:", err));
   }
+
+// RDV (appointments) — simple client-side planner & admin accept flow
+function generateSlots(){
+  const select = document.getElementById('rdv-slot');
+  if(!select) return;
+  select.innerHTML = '';
+  const days = 14; // next 14 days
+  const slots = ['09:00','11:00','14:00','16:00'];
+  const today = new Date();
+  for(let d=0; d<days; d++){
+    const day = new Date(today.getFullYear(), today.getMonth(), today.getDate()+d);
+    const dayLabel = day.toLocaleDateString();
+    slots.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = `${day.toISOString().slice(0,10)}T${s}`;
+      opt.textContent = `${dayLabel} • ${s}`;
+      select.appendChild(opt);
+    });
+  }
+}
+
+function submitRdv(){
+  const client = document.getElementById('rdv-client').value.trim();
+  const vehicle = document.getElementById('rdv-vehicle').value.trim();
+  const service = document.getElementById('rdv-service').value;
+  const slot = document.getElementById('rdv-slot').value;
+  const payment = document.getElementById('rdv-payment').value;
+  if(!client || !vehicle || !slot){ showToast('Veuillez renseigner nom, véhicule et choisir une plage horaire'); return; }
+  const pending = JSON.parse(localStorage.getItem('bhw_rdv_pending')||'[]');
+  pending.push({ client, vehicle, service, slot, payment, created: new Date().toISOString() });
+  try{ localStorage.setItem('bhw_rdv_pending', JSON.stringify(pending)); }catch(e){}
+  showToast('RDV demandé — en attente de validation');
+  // clear simple fields
+  document.getElementById('rdv-client').value = '';
+  document.getElementById('rdv-vehicle').value = '';
+  // if admin mode is on, re-render pending
+  if(document.getElementById('admin-mode') && document.getElementById('admin-mode').checked) renderPendingRdv();
+}
+
+function toggleAdminMode(on){
+  const container = document.getElementById('pending-rdvs');
+  if(!container) return;
+  container.style.display = on ? 'block' : 'none';
+  if(on) renderPendingRdv();
+}
+
+function renderPendingRdv(){
+  const container = document.getElementById('pending-rdvs');
+  if(!container) return;
+  const pending = JSON.parse(localStorage.getItem('bhw_rdv_pending')||'[]');
+  if(pending.length === 0){ container.innerHTML = '<div>Aucune demande en attente</div>'; return; }
+  container.innerHTML = '';
+  pending.forEach((p, idx) => {
+    const div = document.createElement('div');
+    div.style.border = '1px solid #e6eef9'; div.style.padding='8px'; div.style.marginBottom='8px'; div.style.borderRadius='8px';
+    const d = new Date(p.slot);
+    div.innerHTML = `<div style="font-weight:700">${p.client} — ${p.vehicle}</div>
+      <div style="font-size:13px;color:#444">${d.toLocaleString()} • ${p.service} • ${p.payment}</div>
+      <div style="margin-top:8px"><button onclick="acceptRdv(${idx})" style="margin-right:8px;background:#1e90ff;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer">Accepter</button><button onclick="rejectRdv(${idx})" style="background:transparent;border:1px solid #d00;color:#d00;padding:6px 10px;border-radius:6px;cursor:pointer">Refuser</button></div>`;
+    container.appendChild(div);
+  });
+}
+
+function acceptRdv(index){
+  const pending = JSON.parse(localStorage.getItem('bhw_rdv_pending')||'[]');
+  if(index < 0 || index >= pending.length) return;
+  const item = pending.splice(index,1)[0];
+  // save confirmed appointment as next RDV
+  const next = { client: item.client, vehicle: item.vehicle, service: item.service, slot: item.slot, payment: item.payment, acceptedAt: new Date().toISOString() };
+  try{ localStorage.setItem('bhw_next_rdv', JSON.stringify(next)); } catch(e){}
+  try{ localStorage.setItem('bhw_rdv_pending', JSON.stringify(pending)); } catch(e){}
+  // update profile Prochain RDV field if present
+  const prof = document.querySelector('#profil input[type=datetime-local]');
+  if(prof){
+    // set value to slot (ISO format already compatible)
+    prof.value = item.slot;
+  }
+  showToast('RDV accepté — indiqué dans le profil');
+  renderPendingRdv();
+}
+
+function rejectRdv(index){
+  const pending = JSON.parse(localStorage.getItem('bhw_rdv_pending')||'[]');
+  if(index < 0 || index >= pending.length) return;
+  pending.splice(index,1);
+  try{ localStorage.setItem('bhw_rdv_pending', JSON.stringify(pending)); }catch(e){}
+  showToast('RDV refusé');
+  renderPendingRdv();
+}
+
+function loadNextRdvToProfile(){
+  const next = JSON.parse(localStorage.getItem('bhw_next_rdv')||'null');
+  if(!next) return;
+  const prof = document.querySelector('#profil input[type=datetime-local]');
+  if(prof){ prof.value = next.slot; }
+}
+
+// ensure slots & next RDV loaded on DOM ready
+document.addEventListener('DOMContentLoaded', ()=>{
+  try{ generateSlots(); }catch(e){}
+  try{ loadNextRdvToProfile(); }catch(e){}
+});
 </script>
 
 </body>
