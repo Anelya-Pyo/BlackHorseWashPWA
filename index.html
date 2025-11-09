@@ -209,7 +209,17 @@ h1,h2 { margin-bottom:15px; text-align:center; }
       </div>
       <div><label>Points fidélité</label>
         <div class="progress-container"><div class="progress-bar" style="width:40%;">40 pts</div></div>
-      </div>
+ <section id="maintenance" style="display:none;">
+  <h2>Carnet d’entretien</h2>
+  <p>Historique et photos de vos prestations :</p>
+  <div id="maintenance-list">
+    <p>Aucune prestation enregistrée pour le moment.</p>
+  </div>
+</section> 
+<button class="tab-btn" onclick="showSection('maintenance')">Carnet d’entretien</button>
+
+    }
+</div>
     </div>
   </section>
 
@@ -273,6 +283,15 @@ h1,h2 { margin-bottom:15px; text-align:center; }
       <h3>Mes demandes en attente</h3>
       <div id="my-pending-rdvs">Vous n'avez pas encore de demande.</div>
     </div>
+
+<!-- Ligne options / prix visible seulement en mode patron -->
+<div id="admin-options" style="margin-top:12px; display:none;">
+  <h3>Options / Prix (Mode Patron)</h3>
+  <label>Options supplémentaires:</label>
+  <input type="text" id="admin-option-input" placeholder="Entrez les options">
+  <label>Prix:</label>
+  <input type="number" id="admin-price-input" placeholder="Prix">
+</div>
   </section>
 
   <!-- AVANCÉ -->
@@ -306,38 +325,76 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 </main>
 
 <!-- NAVIGATION (redesign) -->
-<nav class="bottom-nav" role="navigation" aria-label="Navigation principale">
+<nav class="bottom-nav" role="navigation" aria-label="Navigation principale" style="display:flex;align-items:center;justify-content:space-between;">
+
+  <!-- Se connecter à gauche -->
+  <a href="#" class="nav-item" data-target="login" onclick="openAuthModal();return false;" aria-label="Se connecter" style="order:-1;">
+    <!-- User SVG pour connexion -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/>
+    </svg>
+    <span class="label">Se connecter</span>
+  </a>
+
+  <!-- Accueil -->
   <a href="#" class="nav-item" data-target="home" onclick="showSection('home');return false;" aria-label="Accueil">
-    <!-- Home SVG -->
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M12 3l9 7v8a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10l9-7z"></path></svg>
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M12 3l9 7v8a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10l9-7z"/>
+    </svg>
     <span class="label">Accueil</span>
   </a>
+
+  <!-- Services -->
   <a href="#" class="nav-item" data-target="services" onclick="showSection('services');return false;" aria-label="Services">
-    <!-- Car wash themed SVG icon -->
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
       <path fill="currentColor" d="M5 16c-.6 0-1-.4-1-1V10c0-1.1.9-2 2-2h1V6c0-.6.4-1 1-1h1c.6 0 1 .4 1 1v2h2V6c0-.6.4-1 1-1h1c.6 0 1 .4 1 1v2h1c1.1 0 2 .9 2 2v5c0 .6-.4 1-1 1h-1v1c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1v-1H5zm2-4a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm8 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2zM7 9h10v1H7V9zm11.5-4.5c-.3.3-.8.3-1.1 0-.3-.3-.3-.8 0-1.1.3-.3.8-.3 1.1 0 .3.3.3.8 0 1.1zm-3 0c-.3.3-.8.3-1.1 0-.3-.3-.3-.8 0-1.1.3-.3.8-.3 1.1 0 .3.3.3.8 0 1.1z"/>
     </svg>
     <span class="label">Services</span>
   </a>
+
+  <!-- Produits -->
   <a href="#" class="nav-item" data-target="products" onclick="showSection('products');return false;" aria-label="Produits">
-    <!-- Bag / Products SVG -->
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path fill="currentColor" d="M6 2h12l1.6 4H4.4L6 2zM5 8h14v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8zm6 2a3 3 0 0 1 3 3h-2a1 1 0 1 0-2 0H8a3 3 0 0 1 3-3z"></path></svg>
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M6 2h12l1.6 4H4.4L6 2zM5 8h14v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8zm6 2a3 3 0 0 1 3 3h-2a1 1 0 1 0-2 0H8a3 3 0 0 1 3-3z"/>
+    </svg>
     <span class="label">Produits</span>
   </a>
+
+  <!-- RDV -->
   <a href="#" class="nav-item" data-target="rdv" onclick="showSection('rdv');return false;" aria-label="Réserver">
-    <!-- Google-like calendar SVG (more visible date grid) -->
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
       <path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM5 9h14v11H5V9zM7 11h5v5H7z"/>
     </svg>
     <span class="label">RDV</span>
   </a>
+
+  <!-- Profil -->
   <a href="#" class="nav-item" data-target="profil" onclick="showSection('profil');return false;" aria-label="Profil">
-    <!-- User / Profile SVG -->
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"></path></svg>
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/>
+    </svg>
     <span class="label">Profil</span>
   </a>
+
+  <!-- Promo / Concours -->
+  <a href="#" class="nav-item" data-target="promo" onclick="showSection('promo');return false;" aria-label="Promotions / Concours">
+    <!-- Exemple SVG : étoile / coupon -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M12 2L15 8H9L12 2ZM12 22L9 16H15L12 22ZM2 12L8 15V9L2 12ZM22 12L16 9V15L22 12Z"/>
+    </svg>
+    <span class="label">Promo / Concours</span>
+  </a>
+
+  <!-- Bouton Plus -->
   <div class="fab-more" role="button" aria-label="Plus" onclick="toggleMore();">+</div>
+
 </nav>
+
+<!-- Section pour Promo / Concours -->
+<section id="promo" style="display:none;">
+  <h2>Promotions et concours en cours</h2>
+  <p>Ajoutez ici toutes vos promotions, concours et offres spéciales.</p>
+</section>
 
 <!-- More modal: regroupe les sections moins utilisées -->
 <div id="more-modal" class="more-modal" aria-hidden="true">
@@ -714,14 +771,18 @@ function submitRdv(){
 
 function toggleAdminMode(on){
   const container = document.getElementById('pending-rdvs');
-  if(!container) return;
-  // Only the patron (owner) can toggle admin mode
+  const adminOptions = document.getElementById('admin-options'); // le bloc à afficher/cacher
+  if(!container || !adminOptions) return;
+
   if(!isOwner()){
-    const cb = document.getElementById('admin-mode'); if(cb) cb.checked = false;
+    const cb = document.getElementById('admin-mode'); 
+    if(cb) cb.checked = false;
     showToast('Seul le patron peut activer le mode patron.');
     return;
   }
+
   container.style.display = on ? 'block' : 'none';
+  adminOptions.style.display = on ? 'block' : 'none';
   if(on) renderPendingRdv();
 }
 
@@ -846,8 +907,7 @@ function loadNextRdvToProfile(){
     try{ const nameInput = document.querySelector('#profil input[type=text]'); const profileName = (nameInput && nameInput.value && nameInput.value.trim()) ? nameInput.value.trim() : null; if(profileName){ const byClient = JSON.parse(localStorage.getItem('bhw_next_rdv_by_client')||'{}'); if(byClient[profileName]) nextRdv = byClient[profileName]; } }catch(e){}
     if(nextRdv){
       const btnInvoice = document.createElement('button'); btnInvoice.textContent = 'Voir facture'; btnInvoice.style.marginRight='8px'; btnInvoice.style.padding='8px'; btnInvoice.style.borderRadius='8px'; btnInvoice.style.border='none'; btnInvoice.style.background='#1e90ff'; btnInvoice.style.color='#fff'; btnInvoice.onclick = ()=> generateInvoice(nextRdv);
-      const btnAdd = document.createElement('button'); btnAdd.textContent = 'Ajouter au panier'; btnAdd.style.padding='8px'; btnAdd.style.borderRadius='8px'; btnAdd.style.border='none'; btnAdd.style.background='#06314d'; btnAdd.style.color='#fff'; btnAdd.onclick = ()=>{ addAcceptedRdvToCart(); };
-      actions.appendChild(btnInvoice); actions.appendChild(btnAdd);
+     
     }
   }catch(e){}
 }
