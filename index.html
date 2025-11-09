@@ -180,8 +180,12 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 
 <header>
   <img src="image/logo.jpg" alt="Logo Black Horse Wash">
-  <div class="cart-summary" onclick="showCart()" role="button" aria-label="Ouvrir le panier">Panier: <span id="cart-count">0</span></div>
+  <div class="cart-summary" onclick="showCart()" role="button" aria-label="Ouvrir le panier">
+    Panier: <span id="cart-count">0</span>
+  </div>
   <div id="auth-summary">
+    <button id="auth-btn">Se connecter</button>
+    <a href="#" id="profile-tab" style="display:none;">Profil</a>
   </div>
 </header>
 
@@ -199,23 +203,11 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 <section id="profil" style="display:none;">
   <h2>Profil Client</h2>
   <div class="profile-grid">
-    <!-- Informations du client -->
-    <div>
-      <label>Nom</label>
-      <input type="text" placeholder="Nom du client">
-    </div>
-    <div>
-      <label>Véhicule</label>
-      <input type="text" placeholder="Modèle du véhicule">
-    </div>
-    <div>
-      <label>Adresse</label>
-      <input type="text" placeholder="Adresse">
-    </div>
-    <div>
-      <label>Prochain RDV</label>
-      <input type="datetime-local">
-    </div>
+    <!-- informations du client -->
+    <div><label>Nom</label><input type="text" placeholder="Nom du client"></div>
+    <div><label>Véhicule</label><input type="text" placeholder="Modèle du véhicule"></div>
+    <div><label>Adresse</label><input type="text" placeholder="Adresse"></div>
+    <div><label>Prochain RDV</label><input type="datetime-local"></div>
 
     <!-- Actions supplémentaires -->
     <div id="profil-next-actions" style="grid-column: 1/-1; margin-top: 8px;"></div>
@@ -223,10 +215,7 @@ h1,h2 { margin-bottom:15px; text-align:center; }
     <!-- Abonnements actifs -->
     <div style="grid-column:1/-1;">
       <h3>Abonnements actifs</h3>
-      <ul id="subscriptions-list" style="margin:8px 0 0 0; padding-left:18px;">
-        <!-- Exemple d'abonnement -->
-        <!-- <li>Abonnement Basic - Valide jusqu'au 31/12/2025</li> -->
-      </ul>
+      <ul id="subscriptions-list" style="margin:8px 0 0 0; padding-left:18px;"></ul>
     </div>
 
     <!-- Points fidélité -->
@@ -240,10 +229,6 @@ h1,h2 { margin-bottom:15px; text-align:center; }
     </div>
   </div>
 </section>
-
-</div>
-    </div>
-  </section>
 
   <!-- SERVICES -->
   <section id="services">
@@ -1158,6 +1143,54 @@ document.addEventListener('DOMContentLoaded', ()=>{
   if (authLogoutBtn) authLogoutBtn.addEventListener('click', logoutUserDemo);
 })();
 </script>
+<script>
+(function(){
+  const authBtn = document.getElementById('auth-btn');
+  const profileTab = document.getElementById('profile-tab');
+  const profilSection = document.getElementById('profil');
 
+  // Pour la démo : crée un utilisateur si aucun n'existe
+  if(!localStorage.getItem('loggedUser')){
+    localStorage.setItem('loggedUser', JSON.stringify({
+      name: "Flo",
+      vehicle: "Renault Clio",
+      address: "123 Rue Exemple"
+    }));
+  }
+
+  function updateUI(){
+    const user = JSON.parse(localStorage.getItem('loggedUser') || 'null');
+    if(user){
+      authBtn.textContent = user.name || 'Déconnexion';
+      profileTab.style.display = 'inline-block';
+      profilSection.style.display = 'block';
+      profilSection.querySelector('input[placeholder="Nom du client"]').value = user.name || '';
+      profilSection.querySelector('input[placeholder="Modèle du véhicule"]').value = user.vehicle || '';
+      profilSection.querySelector('input[placeholder="Adresse"]').value = user.address || '';
+    } else {
+      authBtn.textContent = 'Se connecter';
+      profileTab.style.display = 'none';
+      profilSection.style.display = 'none';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', updateUI);
+
+  authBtn.addEventListener('click', () => {
+    const user = JSON.parse(localStorage.getItem('loggedUser') || 'null');
+    if(user){
+      localStorage.removeItem('loggedUser'); // Déconnexion
+      updateUI();
+    } else {
+      alert("Ouvrir modal login ici"); // Remplace par ton modal si tu en as un
+    }
+  });
+
+  profileTab.addEventListener('click', (e)=>{
+    e.preventDefault();
+    profilSection.scrollIntoView({behavior:'smooth'});
+  });
+})();
+</script>
 </body>
 </html>
