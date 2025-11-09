@@ -195,11 +195,7 @@ h1,h2 { margin-bottom:15px; text-align:center; }
       <div><label>Nom</label><input type="text" placeholder="Nom du client"></div>
       <div><label>Véhicule</label><input type="text" placeholder="Modèle du véhicule"></div>
       <div><label>Adresse</label><input type="text" placeholder="Adresse"></div>
-      <div>
-        <label>Prochain RDV</label>
-        <!-- Mini calendar showing confirmed next RDV (read-only) -->
-        <div id="profile-calendar" class="rdv-calendar" aria-live="polite" aria-label="Calendrier du prochain RDV"></div>
-      </div>
+      <div><label>Prochain RDV</label><input type="datetime-local"></div>
       <div style="grid-column:1/-1;">
         <h3>Abonnements actifs</h3>
         <ul id="subscriptions-list" style="margin:8px 0 0 0;padding-left:18px;"></ul>
@@ -733,7 +729,6 @@ function cancelPending(created){
   renderPendingRdv();
   renderMyPendingRdv();
   try{ generateSlots('rdv-calendar', true); }catch(e){}
-  try{ generateSlots('profile-calendar', false); }catch(e){}
 }
 
 function renderPendingRdv(){
@@ -774,7 +769,6 @@ function acceptRdv(index){
   showToast('RDV accepté — indiqué dans le profil');
   renderPendingRdv();
   try{ generateSlots('rdv-calendar', true); }catch(e){}
-  try{ generateSlots('profile-calendar', false); }catch(e){}
 }
 
 function rejectRdv(index){
@@ -785,7 +779,6 @@ function rejectRdv(index){
   showToast('RDV refusé');
   renderPendingRdv();
   try{ generateSlots('rdv-calendar', true); }catch(e){}
-  try{ generateSlots('profile-calendar', false); }catch(e){}
 }
 
 function loadNextRdvToProfile(){
@@ -793,14 +786,11 @@ function loadNextRdvToProfile(){
   if(!next) return;
   const prof = document.querySelector('#profil input[type=datetime-local]');
   if(prof){ prof.value = next.slot; }
-  // also update the profile mini-calendar (read-only) to reflect the confirmed RDV
-  try{ generateSlots('profile-calendar', false); }catch(e){}
 }
 
 // ensure slots & next RDV loaded on DOM ready
 document.addEventListener('DOMContentLoaded', ()=>{
   try{ generateSlots('rdv-calendar', true); }catch(e){}
-  try{ generateSlots('profile-calendar', false); }catch(e){}
   try{ loadNextRdvToProfile(); }catch(e){}
   try{ renderMyPendingRdv(); }catch(e){}
 });
