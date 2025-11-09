@@ -1131,5 +1131,62 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   document.addEventListener('DOMContentLoaded', updateUI);
 </script>
+<script>
+(function(){
+  // Récupérer les éléments une seule fois
+  const authBtn = document.getElementById('auth-btn');
+  const profileTab = document.getElementById('profile-tab');
+  const profilSection = document.getElementById('profil');
+  const authLogoutBtn = document.getElementById('auth-logout');
+
+  function updateUI() {
+    let user = null;
+    try {
+      user = JSON.parse(localStorage.getItem('loggedUser'));
+    } catch(e) {
+      user = null;
+    }
+
+    if (authBtn) authBtn.style.display = user ? 'none' : 'inline-block';
+    if (profileTab) profileTab.style.display = user ? 'inline-block' : 'none';
+    if (profilSection) profilSection.style.display = user ? 'block' : 'none';
+    if (authLogoutBtn) authLogoutBtn.style.display = user ? 'inline-block' : 'none';
+  }
+
+  function loginUserDemo() {
+    const emailInput = document.getElementById('auth-login-email');
+    const passInput = document.getElementById('auth-login-pass');
+    if (!emailInput || !passInput) return;
+
+    const email = emailInput.value.trim();
+    const pass = passInput.value.trim();
+    if (!email || !pass) { alert('Veuillez remplir tous les champs'); return; }
+
+    let accounts = [];
+    try { accounts = JSON.parse(localStorage.getItem('accounts')) || []; } catch(e){ accounts = []; }
+
+    const user = accounts.find(acc => acc.email === email && acc.pass === pass);
+    if (user) {
+      localStorage.setItem('loggedUser', JSON.stringify(user));
+      if (typeof closeAuthModal === 'function') closeAuthModal();
+      updateUI();
+      alert('Connecté en tant que ' + user.name);
+    } else { alert('Email ou mot de passe incorrect'); }
+  }
+
+  function logoutUserDemo() {
+    localStorage.removeItem('loggedUser');
+    updateUI();
+  }
+
+  // Initialisation
+  document.addEventListener('DOMContentLoaded', updateUI);
+
+  if (authBtn) authBtn.addEventListener('click', loginUserDemo);
+  if (authLogoutBtn) authLogoutBtn.addEventListener('click', logoutUserDemo);
+
+})();
+</script>
+
 </body>
 </html>
