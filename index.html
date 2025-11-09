@@ -149,6 +149,17 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   .services-grid img, .products-grid img { height:140px; }
   .abonnement-grid img { height:100px; }
 }
+
+/* RDV visual calendar styles */
+.rdv-calendar { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-top:8px; }
+.rdv-day { background:#fbfdff; border:1px solid #e6f6ff; padding:8px; border-radius:8px; }
+.rdv-day-header { font-weight:700; font-size:13px; color:#06314d; margin-bottom:6px; }
+.rdv-day-slots { display:flex; flex-wrap:wrap; gap:6px; }
+.rdv-slot-btn { background:#fff; border:1px solid #dbeffb; padding:6px 8px; border-radius:6px; cursor:pointer; font-weight:600; color:#0b61a6; }
+.rdv-slot-btn:hover { transform:translateY(-2px); box-shadow:0 6px 14px rgba(2,80,160,0.08); }
+.rdv-slot-btn.selected { background:#1e90ff; color:#fff; border-color:#1e90ff; }
+.rdv-slot-btn:disabled, .rdv-slot-btn.taken { background:#f1f5f9; color:#9aa7b8; border-color:#e6eef6; cursor:not-allowed; }
+
 </style>
 </head>
 <body>
@@ -215,8 +226,10 @@ h1,h2 { margin-bottom:15px; text-align:center; }
       <option>Nettoyage Complet</option>
       <option>Options (Siège bébé, poils animaux)</option>
     </select>
-    <label>Choisir une date/une plage horaire</label>
-    <select id="rdv-slot"></select>
+  <label>Choisir une date/une plage horaire</label>
+  <!-- hidden input stores the selected ISO slot value; calendar below is the visual picker -->
+  <input type="hidden" id="rdv-slot" aria-hidden="true">
+  <div id="rdv-calendar" class="rdv-calendar" aria-live="polite"></div>
     <label>Paiement</label>
     <select id="rdv-payment">
       <option>Carte bancaire</option>
@@ -570,22 +583,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // RDV (appointments) — simple client-side planner & admin accept flow
 function generateSlots(){
-  const select = document.getElementById('rdv-slot');
-  if(!select) return;
-  select.innerHTML = '';
+  const container = document.getElementById('rdv-calendar');
+  const hidden = document.getElementById('rdv-slot');
+  if(!container || !hidden) return;
+  container.innerHTML = '';
   const days = 14; // next 14 days
   const slots = ['09:00','11:00','14:00','16:00'];
   const today = new Date();
+  const pending = JSON.parse(localStorage.getItem('bhw_rdv_pending')||'[]');
+  const next = JSON.parse(localStorage.getItem('bhw_next_rdv')||'null');
+  const selected = hidden.value || '';
+
   for(let d=0; d<days; d++){
     const day = new Date(today.getFullYear(), today.getMonth(), today.getDate()+d);
-    const dayLabel = day.toLocaleDateString();
+    const dayISO = day.toISOString().slice(0,10);
+    const dayLabel = day.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+
+    const dayDiv = document.createElement('div');
+    dayDiv.className = 'rdv-day';
+    const header = document.createElement('div'); header.className = 'rdv-day-header'; header.textContent = dayLabel;
+    dayDiv.appendChild(header);
+
+    const slotWrap = document.createElement('div'); slotWrap.className = 'rdv-day-slots';
     slots.forEach(s => {
-      const opt = document.createElement('option');
-      opt.value = `${day.toISOString().slice(0,10)}T${s}`;
-      opt.textContent = `${dayLabel} • ${s}`;
-      select.appendChild(opt);
+      const iso = `${dayISO}T${s}`;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'rdv-slot-btn';
+      btn.textContent = s;
+      btn.dataset.slot = iso;
+
+      // mark as taken if pending or already confirmed
+      const taken = pending.some(p => p.slot === iso) || (next && next.slot === iso);
+      if(taken){ btn.disabled = true; btn.classList.add('taken'); btn.title = 'Occupé'; }
+      if(selected === iso) btn.classList.add('selected');
+      btn.onclick = function(){ if(!this.disabled) selectSlot(this); };
+      slotWrap.appendChild(btn);
     });
+
+    dayDiv.appendChild(slotWrap);
+    container.appendChild(dayDiv);
   }
+}
+
+function selectSlot(btn){
+  // Deselect previous and mark current selected
+  document.querySelectorAll('.rdv-slot-btn.selected').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  const val = btn.dataset.slot;
+  const hidden = document.getElementById('rdv-slot');
+  if(hidden) hidden.value = val;
 }
 
 function submitRdv(){
@@ -614,6 +661,7 @@ function submitRdv(){
   // refresh lists
   if(document.getElementById('admin-mode') && document.getElementById('admin-mode').checked) renderPendingRdv();
   renderMyPendingRdv();
+  try{ generateSlots(); }catch(e){}
 }
 
 function toggleAdminMode(on){
@@ -649,6 +697,7 @@ function cancelPending(created){
   showToast('Demande annulée');
   renderPendingRdv();
   renderMyPendingRdv();
+  try{ generateSlots(); }catch(e){}
 }
 
 function renderPendingRdv(){
@@ -688,6 +737,7 @@ function acceptRdv(index){
   }
   showToast('RDV accepté — indiqué dans le profil');
   renderPendingRdv();
+  try{ generateSlots(); }catch(e){}
 }
 
 function rejectRdv(index){
@@ -697,6 +747,7 @@ function rejectRdv(index){
   try{ localStorage.setItem('bhw_rdv_pending', JSON.stringify(pending)); }catch(e){}
   showToast('RDV refusé');
   renderPendingRdv();
+  try{ generateSlots(); }catch(e){}
 }
 
 function loadNextRdvToProfile(){
