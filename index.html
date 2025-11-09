@@ -10,6 +10,9 @@ body { margin:0; padding:0; font-family:Arial,sans-serif; background:#f5f5f5; co
 header { display:flex; align-items:center; justify-content:center; /* brighter bluer branding */ background: linear-gradient(90deg,#2b8fe6 0%, #66b3ff 100%); padding:12px 20px; position:relative; }
 header img { height:84px; width:auto; }
 .cart-summary { position:absolute; right:16px; top:16px; color:#06314d; cursor:pointer; font-weight:700; background: rgba(255,255,255,0.92); padding:6px 10px; border-radius:10px; box-shadow:0 6px 14px rgba(3,34,56,0.12); }
+/* Auth / account summary in header */
+#auth-summary { position:absolute; right:150px; top:16px; color:#06314d; font-weight:700; display:flex; gap:8px; align-items:center; }
+#auth-summary button { background:transparent; border:1px solid rgba(6,49,77,0.06); padding:6px 10px; border-radius:8px; cursor:pointer; color:#06314d; }
 
 main { padding:20px; margin-bottom:70px; }
 section { display:none; padding:20px; background:#fff; border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,0.1); }
@@ -179,6 +182,9 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 <header>
   <img src="image/logo.jpg" alt="Logo Black Horse Wash">
   <div class="cart-summary" onclick="showCart()" role="button" aria-label="Ouvrir le panier">Panier: <span id="cart-count">0</span></div>
+  <div id="auth-summary">
+    <button id="auth-btn" onclick="openAuthModal()">Se connecter</button>
+  </div>
 </header>
 
 <main>
@@ -233,11 +239,15 @@ h1,h2 { margin-bottom:15px; text-align:center; }
     <label>Véhicule</label><input id="rdv-vehicle" type="text" placeholder="Modèle du véhicule">
     <label>Service demandé</label>
     <select id="rdv-service">
-      <option>Intérieur Voiture</option>
-      <option>Extérieur Voiture</option>
-      <option>Nettoyage Complet</option>
-      <option>Options (Siège bébé, poils animaux)</option>
+      <option value="interieur">Intérieur Voiture</option>
+      <option value="exterieur">Extérieur Voiture</option>
+      <option value="complet">Nettoyage Complet</option>
     </select>
+    <label>Options supplémentaires</label>
+    <div id="rdv-options" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;">
+      <label style="font-size:14px;"><input type="checkbox" value="siege-bebe" id="opt-siege"> Siège bébé</label>
+      <label style="font-size:14px;"><input type="checkbox" value="poils-animaux" id="opt-poils"> Poils d'animaux</label>
+    </div>
   <label>Choisir une date/une plage horaire</label>
     <!-- Use native datetime-local picker (same as Profil) so RDV UI matches Profil -->
     <input id="rdv-slot" type="datetime-local">
@@ -249,8 +259,8 @@ h1,h2 { margin-bottom:15px; text-align:center; }
     </select>
     <div style="margin-top:10px"><button onclick="submitRdv()">Demander RDV</button></div>
 
-    <hr>
-    <label><input type="checkbox" id="admin-mode" onchange="toggleAdminMode(this.checked)"> Mode patron (afficher demandes en attente)</label>
+  <hr>
+  <label style="display:none;"><input type="checkbox" id="admin-mode" onchange="toggleAdminMode(this.checked)"> Mode patron (afficher demandes en attente)</label>
     <div id="pending-rdvs" style="margin-top:12px; display:none;"></div>
     <div id="my-pending-container" style="margin-top:12px;">
       <h3>Mes demandes en attente</h3>
@@ -331,6 +341,37 @@ h1,h2 { margin-bottom:15px; text-align:center; }
     <a href="#" onclick="showSection('abonnements');toggleMore();return false;">Abonnements</a>
     <a href="#" onclick="document.getElementById('more-modal').classList.remove('open');document.getElementById('more-modal').setAttribute('aria-hidden','true');return false;">Fermer</a>
   </div>
+</div>
+
+<!-- Auth modal (demo localStorage accounts) -->
+<div id="auth-modal" style="display:none; position:fixed; left:50%; transform:translateX(-50%); top:14%; width:92%; max-width:420px; background:#fff; border-radius:12px; padding:12px; box-shadow:0 18px 40px rgba(3,34,56,0.18); z-index:150;">
+  <h3 id="auth-title">Se connecter</h3>
+  <div style="display:flex;gap:8px;margin-bottom:8px;">
+    <button id="auth-tab-login" onclick="showAuthTab('login')" style="flex:1;padding:8px;border-radius:8px;border:1px solid #eee;">Connexion</button>
+    <button id="auth-tab-register" onclick="showAuthTab('register')" style="flex:1;padding:8px;border-radius:8px;border:1px solid #eee;">Inscription</button>
+  </div>
+  <div id="auth-body">
+    <div id="auth-login" style="display:block;">
+      <label>Email</label>
+      <input id="auth-login-email" type="email" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ddd;">
+      <label>Mot de passe</label>
+      <input id="auth-login-pass" type="password" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ddd;">
+      <div style="margin-top:8px;display:flex;gap:8px;"><button onclick="loginUser()" style="flex:1;background:#1e90ff;color:#fff;padding:8px;border-radius:8px;border:none;">Connexion</button><button onclick="closeAuthModal()" style="flex:1;background:transparent;border:1px solid #ddd;padding:8px;border-radius:8px;">Fermer</button></div>
+    </div>
+    <div id="auth-register" style="display:none;">
+      <label>Nom</label>
+      <input id="auth-reg-name" type="text" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ddd;">
+      <label>Email</label>
+      <input id="auth-reg-email" type="email" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ddd;">
+      <label>Mot de passe</label>
+      <input id="auth-reg-pass" type="password" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ddd;">
+      <label>Rôle</label>
+      <select id="auth-reg-role" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ddd;"><option value="client">Client</option><option value="patron">Patron (démo)</option></select>
+      <div style="margin-top:8px;display:flex;gap:8px;"><button onclick="registerUser()" style="flex:1;background:#1e90ff;color:#fff;padding:8px;border-radius:8px;border:none;">Créer</button><button onclick="closeAuthModal()" style="flex:1;background:transparent;border:1px solid #ddd;padding:8px;border-radius:8px;">Fermer</button></div>
+      <div style="margin-top:8px;font-size:12px;color:#666">Note: il s'agit d'une démo. Les comptes sont stockés localement et non sécurisés.</div>
+    </div>
+  </div>
+  <div style="margin-top:8px;text-align:right;"><button id="auth-logout" onclick="logoutUser()" style="display:none;background:transparent;border:none;color:#d00;">Déconnexion</button></div>
 </div>
 
 <!-- Cart modal -->
@@ -600,7 +641,10 @@ document.addEventListener('DOMContentLoaded', () => {
 function submitRdv(){
   const client = document.getElementById('rdv-client').value.trim();
   const vehicle = document.getElementById('rdv-vehicle').value.trim();
-  const service = document.getElementById('rdv-service').value;
+  const serviceEl = document.getElementById('rdv-service');
+  const service = (serviceEl && serviceEl.options && serviceEl.options[serviceEl.selectedIndex]) ? serviceEl.options[serviceEl.selectedIndex].text : (serviceEl ? serviceEl.value : '');
+  // gather checked options as human-readable labels
+  const options = Array.from(document.querySelectorAll('#rdv-options input[type=checkbox]:checked')).map(cb => cb.parentElement ? cb.parentElement.textContent.trim() : (cb.value || '') );
   const slot = document.getElementById('rdv-slot').value;
   const payment = document.getElementById('rdv-payment').value;
   if(!client || !vehicle || !slot){ showToast('Veuillez renseigner nom, véhicule et choisir une plage horaire'); return; }
@@ -612,7 +656,7 @@ function submitRdv(){
     return;
   }
   const created = new Date().toISOString();
-  pending.push({ client, vehicle, service, slot, payment, created });
+  pending.push({ client, vehicle, service, options, slot, payment, created });
   try{ localStorage.setItem('bhw_rdv_pending', JSON.stringify(pending)); }catch(e){}
   // remember last client on this device to show "Mes demandes"
   try{ localStorage.setItem('bhw_last_client', client); }catch(e){}
@@ -629,6 +673,12 @@ function submitRdv(){
 function toggleAdminMode(on){
   const container = document.getElementById('pending-rdvs');
   if(!container) return;
+  // Only the patron (owner) can toggle admin mode
+  if(!isOwner()){
+    const cb = document.getElementById('admin-mode'); if(cb) cb.checked = false;
+    showToast('Seul le patron peut activer le mode patron.');
+    return;
+  }
   container.style.display = on ? 'block' : 'none';
   if(on) renderPendingRdv();
 }
@@ -645,7 +695,8 @@ function renderMyPendingRdv(){
     const d = new Date(p.slot);
     const div = document.createElement('div');
     div.style.border='1px dashed #cfe8ff'; div.style.padding='8px'; div.style.marginBottom='8px'; div.style.borderRadius='8px';
-    div.innerHTML = `<div style="font-weight:700">${p.client} — ${p.vehicle}</div><div style="color:#444;font-size:13px">${d.toLocaleString()} • ${p.service}</div><div style="margin-top:8px"><button onclick="cancelPending('${p.created}')" style="background:transparent;border:1px solid #d00;color:#d00;padding:6px 10px;border-radius:6px;cursor:pointer">Annuler la demande</button></div>`;
+    const opts = (p.options && p.options.length) ? `<div style="color:#444;font-size:13px">Options: ${p.options.join(', ')}</div>` : '';
+    div.innerHTML = `<div style="font-weight:700">${p.client} — ${p.vehicle}</div><div style="color:#444;font-size:13px">${d.toLocaleString()} • ${p.service}</div>${opts}<div style="margin-top:8px"><button onclick="cancelPending('${p.created}')" style="background:transparent;border:1px solid #d00;color:#d00;padding:6px 10px;border-radius:6px;cursor:pointer">Annuler la demande</button></div>`;
     container.appendChild(div);
   });
 }
@@ -672,14 +723,17 @@ function renderPendingRdv(){
     const div = document.createElement('div');
     div.style.border = '1px solid #e6eef9'; div.style.padding='8px'; div.style.marginBottom='8px'; div.style.borderRadius='8px';
     const d = new Date(p.slot);
+    const opts = (p.options && p.options.length) ? `<div style="font-size:13px;color:#444">Options: ${p.options.join(', ')}</div>` : '';
     div.innerHTML = `<div style="font-weight:700">${p.client} — ${p.vehicle}</div>
       <div style="font-size:13px;color:#444">${d.toLocaleString()} • ${p.service} • ${p.payment}</div>
+      ${opts}
       <div style="margin-top:8px"><button onclick="acceptRdv(${idx})" style="margin-right:8px;background:#1e90ff;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer">Accepter</button><button onclick="rejectRdv(${idx})" style="background:transparent;border:1px solid #d00;color:#d00;padding:6px 10px;border-radius:6px;cursor:pointer">Refuser</button></div>`;
     container.appendChild(div);
   });
 }
 
 function acceptRdv(index){
+  if(!isOwner()){ showToast('Accès refusé — action réservée au patron'); return; }
   const pending = JSON.parse(localStorage.getItem('bhw_rdv_pending')||'[]');
   if(index < 0 || index >= pending.length) return;
   const item = pending[index];
@@ -688,8 +742,14 @@ function acceptRdv(index){
   // remove item from pending and keep it as accepted
   pending.splice(index,1);
   // save confirmed appointment as next RDV
-  const newNext = { client: item.client, vehicle: item.vehicle, service: item.service, slot: item.slot, payment: item.payment, acceptedAt: new Date().toISOString() };
+  const newNext = { client: item.client, vehicle: item.vehicle, service: item.service, options: item.options || [], slot: item.slot, payment: item.payment, acceptedAt: new Date().toISOString() };
   try{ localStorage.setItem('bhw_next_rdv', JSON.stringify(newNext)); } catch(e){}
+  // also save per-client mapping so the client's profile (by name) can display their next RDV
+  try{
+    const byClient = JSON.parse(localStorage.getItem('bhw_next_rdv_by_client')||'{}');
+    byClient[item.client] = newNext;
+    localStorage.setItem('bhw_next_rdv_by_client', JSON.stringify(byClient));
+  }catch(e){}
   try{ localStorage.setItem('bhw_rdv_pending', JSON.stringify(pending)); } catch(e){}
   // update profile Prochain RDV field if present
   const prof = document.querySelector('#profil input[type=datetime-local]');
@@ -703,6 +763,7 @@ function acceptRdv(index){
 }
 
 function rejectRdv(index){
+  if(!isOwner()){ showToast('Accès refusé — action réservée au patron'); return; }
   const pending = JSON.parse(localStorage.getItem('bhw_rdv_pending')||'[]');
   if(index < 0 || index >= pending.length) return;
   pending.splice(index,1);
@@ -714,17 +775,89 @@ function rejectRdv(index){
 
 function loadNextRdvToProfile(){
   const next = JSON.parse(localStorage.getItem('bhw_next_rdv')||'null');
-  if(!next) return;
+  // prefer a per-client next RDV when the profile name is known
   const prof = document.querySelector('#profil input[type=datetime-local]');
-  if(prof){ prof.value = next.slot; }
+  if(!prof) return;
+  // determine the profile name if filled
+  const nameInput = document.querySelector('#profil input[type=text]');
+  const profileName = (nameInput && nameInput.value && nameInput.value.trim()) ? nameInput.value.trim() : null;
+  try{
+    if(profileName){
+      const byClient = JSON.parse(localStorage.getItem('bhw_next_rdv_by_client')||'{}');
+      const clientNext = byClient[profileName];
+      if(clientNext && clientNext.slot){ prof.value = clientNext.slot; return; }
+    }
+  }catch(e){ /* ignore parse errors */ }
+  if(next && next.slot){ prof.value = next.slot; }
 }
+
+// ensure slots & next RDV loaded on DOM ready
+// --- Demo auth (localStorage) helpers ---
+function hashPass(p){ try{ return btoa(p || ''); }catch(e){ return p || ''; } }
+function loadUsers(){ return JSON.parse(localStorage.getItem('bhw_users')||'[]'); }
+function saveUsers(u){ try{ localStorage.setItem('bhw_users', JSON.stringify(u)); }catch(e){} }
+function getCurrentUser(){ return JSON.parse(localStorage.getItem('bhw_current_user')||'null'); }
+function setCurrentUser(u){ if(u) localStorage.setItem('bhw_current_user', JSON.stringify(u)); else localStorage.removeItem('bhw_current_user'); updateAuthUI(); }
+function isOwner(){ const cu = getCurrentUser(); return cu && cu.role === 'patron'; }
+
+function updateAuthUI(){
+  const cu = getCurrentUser();
+  const authBtn = document.getElementById('auth-btn');
+  const adminCheckbox = document.getElementById('admin-mode');
+  const logoutBtn = document.getElementById('auth-logout');
+  if(authBtn){
+    if(cu){ authBtn.textContent = cu.name + ' ▾'; }
+    else { authBtn.textContent = 'Se connecter'; }
+  }
+  if(adminCheckbox){
+    // show the admin-mode control only if current user is owner
+    if(isOwner()) adminCheckbox.parentElement.style.display = 'block';
+    else { adminCheckbox.parentElement.style.display = 'none'; adminCheckbox.checked = false; const pendingContainer = document.getElementById('pending-rdvs'); if(pendingContainer) pendingContainer.style.display='none'; }
+  }
+  if(logoutBtn){ logoutBtn.style.display = cu ? 'inline-block' : 'none'; }
+  try{ renderMyPendingRdv(); }catch(e){}
+}
+
+function openAuthModal(){ const modal = document.getElementById('auth-modal'); if(!modal) return; modal.style.display = 'block'; showAuthTab('login'); }
+function closeAuthModal(){ const modal = document.getElementById('auth-modal'); if(modal) modal.style.display='none'; }
+function showAuthTab(tab){ document.getElementById('auth-title').textContent = tab === 'login' ? 'Se connecter' : 'Inscription'; document.getElementById('auth-login').style.display = tab === 'login' ? 'block' : 'none'; document.getElementById('auth-register').style.display = tab === 'register' ? 'block' : 'none';
+  const roleSelect = document.getElementById('auth-reg-role'); if(roleSelect){ try{ const users = loadUsers(); const hasPatron = users.some(u=>u.role==='patron'); const opt = Array.from(roleSelect.options).find(o=>o.value==='patron'); if(opt) opt.disabled = hasPatron && !isOwner(); }catch(e){} }
+}
+
+function registerUser(){
+  const name = document.getElementById('auth-reg-name').value.trim();
+  const email = document.getElementById('auth-reg-email').value.trim().toLowerCase();
+  const pass = document.getElementById('auth-reg-pass').value || '';
+  const role = document.getElementById('auth-reg-role').value || 'client';
+  if(!name || !email || !pass){ showToast('Remplissez tous les champs d\u2019inscription'); return; }
+  const users = loadUsers();
+  if(users.some(u=>u.email === email)){ showToast('Un compte existe déjà pour cet email'); return; }
+  if(role === 'patron'){ const hasPatron = users.some(u=>u.role==='patron'); if(hasPatron && !isOwner()){ showToast('Un compte patron existe déjà'); return; } }
+  const newUser = { name, email, passHash: hashPass(pass), role };
+  users.push(newUser); saveUsers(users);
+  setCurrentUser({ name, email, role });
+  closeAuthModal(); showToast('Compte créé et connecté (démo)');
+}
+
+function loginUser(){
+  const email = document.getElementById('auth-login-email').value.trim().toLowerCase();
+  const pass = document.getElementById('auth-login-pass').value || '';
+  if(!email || !pass){ showToast('Email et mot de passe requis'); return; }
+  const users = loadUsers();
+  const u = users.find(x=>x.email===email && x.passHash === hashPass(pass));
+  if(!u){ showToast('Identifiants invalides'); return; }
+  setCurrentUser({ name: u.name, email: u.email, role: u.role });
+  closeAuthModal(); showToast('Connecté en tant que ' + u.name);
+}
+
+function logoutUser(){ setCurrentUser(null); closeAuthModal(); showToast('Déconnecté'); }
 
 // ensure slots & next RDV loaded on DOM ready
 document.addEventListener('DOMContentLoaded', ()=>{
   try{ loadNextRdvToProfile(); }catch(e){}
   try{ renderMyPendingRdv(); }catch(e){}
+  try{ updateAuthUI(); }catch(e){}
 });
-</script>
 
 </body>
 </html>
