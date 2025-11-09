@@ -195,7 +195,11 @@ h1,h2 { margin-bottom:15px; text-align:center; }
       <div><label>Nom</label><input type="text" placeholder="Nom du client"></div>
       <div><label>Véhicule</label><input type="text" placeholder="Modèle du véhicule"></div>
       <div><label>Adresse</label><input type="text" placeholder="Adresse"></div>
-      <div><label>Prochain RDV</label><input type="datetime-local"></div>
+      <div>
+        <label>Prochain RDV</label>
+        <!-- Mini calendar showing confirmed next RDV (read-only) -->
+        <div id="profile-calendar" class="rdv-calendar" aria-live="polite" aria-label="Calendrier du prochain RDV"></div>
+      </div>
       <div style="grid-column:1/-1;">
         <h3>Abonnements actifs</h3>
         <ul id="subscriptions-list" style="margin:8px 0 0 0;padding-left:18px;"></ul>
@@ -601,17 +605,21 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 // RDV (appointments) — simple client-side planner & admin accept flow
-function generateSlots(){
-  const container = document.getElementById('rdv-calendar');
+function generateSlots(containerId, interactive){
+  // containerId: id of the element to render into (default 'rdv-calendar')
+  // interactive: boolean, if true the slots are clickable and update #rdv-slot; if false, it's read-only and shows confirmed next RDV
+  containerId = containerId || 'rdv-calendar';
+  if (interactive === undefined) interactive = true;
+  const container = document.getElementById(containerId);
   const hidden = document.getElementById('rdv-slot');
-  if(!container || !hidden) return;
+  if(!container) return;
   container.innerHTML = '';
   const days = 14; // next 14 days
   const slots = ['09:00','11:00','14:00','16:00'];
   const today = new Date();
   const pending = JSON.parse(localStorage.getItem('bhw_rdv_pending')||'[]');
   const next = JSON.parse(localStorage.getItem('bhw_next_rdv')||'null');
-  const selected = hidden.value || '';
+  const selected = (hidden && hidden.value) ? hidden.value : '';
 
   for(let d=0; d<days; d++){
     const day = new Date(today.getFullYear(), today.getMonth(), today.getDate()+d);
@@ -634,9 +642,17 @@ function generateSlots(){
 
       // mark as taken if pending or already confirmed
       const taken = pending.some(p => p.slot === iso) || (next && next.slot === iso);
-      if(taken){ btn.disabled = true; btn.classList.add('taken'); btn.title = 'Occupé'; }
-      if(selected === iso) btn.classList.add('selected');
-      btn.onclick = function(){ if(!this.disabled) selectSlot(this); };
+
+      if(!interactive){
+        // read-only view (profile): disable all but highlight confirmed next RDV
+        btn.disabled = true;
+        if(next && next.slot === iso){ btn.classList.add('selected'); btn.title = `Prochain RDV: ${next.client || '—'}`; }
+      } else {
+        if(taken){ btn.disabled = true; btn.classList.add('taken'); btn.title = 'Occupé'; }
+        if(selected === iso) btn.classList.add('selected');
+        btn.onclick = function(){ if(!this.disabled) selectSlot(this); };
+      }
+
       slotWrap.appendChild(btn);
     });
 
@@ -680,7 +696,7 @@ function submitRdv(){
   // refresh lists
   if(document.getElementById('admin-mode') && document.getElementById('admin-mode').checked) renderPendingRdv();
   renderMyPendingRdv();
-  try{ generateSlots(); }catch(e){}
+  try{ generateSlots('rdv-calendar', true); }catch(e){}
 }
 
 function toggleAdminMode(on){
@@ -716,7 +732,8 @@ function cancelPending(created){
   showToast('Demande annulée');
   renderPendingRdv();
   renderMyPendingRdv();
-  try{ generateSlots(); }catch(e){}
+  try{ generateSlots('rdv-calendar', true); }catch(e){}
+  try{ generateSlots('profile-calendar', false); }catch(e){}
 }
 
 function renderPendingRdv(){
@@ -756,7 +773,8 @@ function acceptRdv(index){
   }
   showToast('RDV accepté — indiqué dans le profil');
   renderPendingRdv();
-  try{ generateSlots(); }catch(e){}
+  try{ generateSlots('rdv-calendar', true); }catch(e){}
+  try{ generateSlots('profile-calendar', false); }catch(e){}
 }
 
 function rejectRdv(index){
@@ -766,7 +784,8 @@ function rejectRdv(index){
   try{ localStorage.setItem('bhw_rdv_pending', JSON.stringify(pending)); }catch(e){}
   showToast('RDV refusé');
   renderPendingRdv();
-  try{ generateSlots(); }catch(e){}
+  try{ generateSlots('rdv-calendar', true); }catch(e){}
+  try{ generateSlots('profile-calendar', false); }catch(e){}
 }
 
 function loadNextRdvToProfile(){
@@ -774,11 +793,14 @@ function loadNextRdvToProfile(){
   if(!next) return;
   const prof = document.querySelector('#profil input[type=datetime-local]');
   if(prof){ prof.value = next.slot; }
+  // also update the profile mini-calendar (read-only) to reflect the confirmed RDV
+  try{ generateSlots('profile-calendar', false); }catch(e){}
 }
 
 // ensure slots & next RDV loaded on DOM ready
 document.addEventListener('DOMContentLoaded', ()=>{
-  try{ generateSlots(); }catch(e){}
+  try{ generateSlots('rdv-calendar', true); }catch(e){}
+  try{ generateSlots('profile-calendar', false); }catch(e){}
   try{ loadNextRdvToProfile(); }catch(e){}
   try{ renderMyPendingRdv(); }catch(e){}
 });
