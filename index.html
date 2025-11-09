@@ -193,31 +193,74 @@ h1,h2 { margin-bottom:15px; text-align:center; }
     <img src="image/CarWash.jpg" alt="Car Wash">
   </section>
 
-  <!-- PROFIL -->
-  <section id="profil">
-    <h2>Profil Client</h2>
-    <div class="profile-grid">
-      <div><label>Nom</label><input type="text" placeholder="Nom du client"></div>
-      <div><label>Véhicule</label><input type="text" placeholder="Modèle du véhicule"></div>
-      <div><label>Adresse</label><input type="text" placeholder="Adresse"></div>
-      <div><label>Prochain RDV</label><input type="datetime-local"></div>
-  <div id="profil-next-actions" style="grid-column:1/-1;margin-top:8px"></div>
-      <div style="grid-column:1/-1;">
-        <h3>Abonnements actifs</h3>
-        <ul id="subscriptions-list" style="margin:8px 0 0 0;padding-left:18px;"></ul>
-      </div>
-      <div><label>Points fidélité</label>
-        <div class="progress-container"><div class="progress-bar" style="width:40%;">40 pts</div></div>
- <section id="maintenance" style="display:none;">
-  <h2>Carnet d’entretien</h2>
-  <p>Historique et photos de vos prestations :</p>
-  <div id="maintenance-list">
-    <p>Aucune prestation enregistrée pour le moment.</p>
-  </div>
-</section> 
-<button class="tab-btn" onclick="showSection('maintenance')">Carnet d’entretien</button>
+ <!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Black Horse Wash</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-    }
+<header>
+  <img src="image/logo.jpg" alt="Logo Black Horse Wash">
+  <div class="cart-summary" onclick="showCart()" role="button" aria-label="Ouvrir le panier">
+    Panier: <span id="cart-count">0</span>
+  </div>
+  <div id="auth-summary">
+    <button id="auth-btn" onclick="login()">Se connecter</button>
+    <a href="#" id="profile-tab" style="display:none;">Profil</a>
+  </div>
+</header>
+
+<main>
+<!-- PROFIL -->
+<section id="profil" style="display:none;">
+  <h2>Profil Client</h2>
+  <div class="profile-grid">
+    <!-- Informations du client -->
+    <div>
+      <label>Nom</label>
+      <input type="text" placeholder="Nom du client">
+    </div>
+    <div>
+      <label>Véhicule</label>
+      <input type="text" placeholder="Modèle du véhicule">
+    </div>
+    <div>
+      <label>Adresse</label>
+      <input type="text" placeholder="Adresse">
+    </div>
+    <div>
+      <label>Prochain RDV</label>
+      <input type="datetime-local">
+    </div>
+
+    <!-- Actions supplémentaires -->
+    <div id="profil-next-actions" style="grid-column: 1/-1; margin-top: 8px;"></div>
+
+    <!-- Abonnements actifs -->
+    <div style="grid-column:1/-1;">
+      <h3>Abonnements actifs</h3>
+      <ul id="subscriptions-list" style="margin:8px 0 0 0; padding-left:18px;">
+        <!-- Exemple d'abonnement -->
+        <!-- <li>Abonnement Basic - Valide jusqu'au 31/12/2025</li> -->
+      </ul>
+    </div>
+
+    <!-- Points fidélité -->
+    <div>
+      <label>Points fidélité</label>
+      <div class="progress-container" style="background:#eee; border-radius:6px; width:100%; height:20px;">
+        <div class="progress-bar" style="width:40%; background:#4CAF50; text-align:center; color:white; line-height:20px; border-radius:6px;">
+          40 pts
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 </div>
     </div>
   </section>
@@ -283,14 +326,6 @@ h1,h2 { margin-bottom:15px; text-align:center; }
       <div id="my-pending-rdvs">Vous n'avez pas encore de demande.</div>
     </div>
 
-<!-- Ligne options / prix visible seulement en mode patron -->
-<div id="admin-options" style="margin-top:12px; display:none;">
-  <h3>Options / Prix (Mode Patron)</h3>
-  <label>Options supplémentaires:</label>
-  <input type="text" id="admin-option-input" placeholder="Entrez les options">
-  <label>Prix:</label>
-  <input type="number" id="admin-price-input" placeholder="Prix">
-</div>
   </section>
 
   <!-- AVANCÉ -->
@@ -1084,6 +1119,33 @@ document.addEventListener('DOMContentLoaded', ()=>{
   try{ updateAuthUI(); }catch(e){}
   try{ refreshOptionLabels(); }catch(e){}
 });
+</script>
+<script>
+  let userIsLoggedIn = false;
+
+  const authBtn = document.getElementById('auth-btn');
+  const profilSection = document.getElementById('profil');
+
+  function updateUI() {
+    if (!authBtn || !profilSection) return;
+
+    if (userIsLoggedIn) {
+      authBtn.style.display = 'none';
+      profilSection.style.display = 'block';
+    } else {
+      authBtn.style.display = 'inline-block';
+      profilSection.style.display = 'none';
+    }
+  }
+
+  if (authBtn) {
+    authBtn.addEventListener('click', () => {
+      userIsLoggedIn = true;
+      updateUI();
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', updateUI);
 </script>
 </body>
 </html>
