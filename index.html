@@ -203,17 +203,6 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 </head>
 <body>
 
-<header>
-  <img src="image/logo.jpg" alt="Logo Black Horse Wash">
-  <div class="cart-summary" onclick="showCart()" role="button" aria-label="Ouvrir le panier">
-    Panier: <span id="cart-count">0</span>
-  </div>
-  <div id="auth-summary">
-    <button id="auth-btn" onclick="login()">Se connecter</button>
-    <a href="#" id="profile-tab" style="display:none;">Profil</a>
-  </div>
-</header>
-
 <main>
 <!-- PROFIL -->
 <section id="profil" style="display:none;">
@@ -300,11 +289,6 @@ h1,h2 { margin-bottom:15px; text-align:center; }
     <div id="rdv-options" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;">
       <label style="font-size:14px;"><input type="checkbox" value="siege-bebe" id="opt-siege" data-price="5" onchange="updateRdvPricePreview()"> Siège bébé (+5€)</label>
       <label style="font-size:14px;"><input type="checkbox" value="poils-animaux" id="opt-poils" data-price="7" onchange="updateRdvPricePreview()"> Poils d'animaux (+7€)</label>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
-      <input id="opt-custom-label" type="text" placeholder="Autre option (ex: lavage jantes)" style="flex:1;padding:6px;border-radius:6px;border:1px solid #ddd;">
-      <input id="opt-custom-price" type="number" placeholder="€" style="width:80px;padding:6px;border-radius:6px;border:1px solid #ddd;"> 
-      <button onclick="addCustomOption()" style="background:#1e90ff;color:#fff;padding:6px 10px;border-radius:8px;border:none;">Ajouter</button>
     </div>
     <div style="margin-top:8px;font-size:14px;color:#06314d">Prix estimé: <span id="rdv-price-preview">0 €</span></div>
   <label>Choisir une date/une plage horaire</label>
