@@ -202,6 +202,7 @@ h1,h2 { margin-bottom:15px; text-align:center; }
       <div><label>Véhicule</label><input type="text" placeholder="Modèle du véhicule"></div>
       <div><label>Adresse</label><input type="text" placeholder="Adresse"></div>
       <div><label>Prochain RDV</label><input type="datetime-local"></div>
+  <div id="profil-next-actions" style="grid-column:1/-1;margin-top:8px"></div>
       <div style="grid-column:1/-1;">
         <h3>Abonnements actifs</h3>
         <ul id="subscriptions-list" style="margin:8px 0 0 0;padding-left:18px;"></ul>
@@ -238,16 +239,22 @@ h1,h2 { margin-bottom:15px; text-align:center; }
     <label>Client</label><input id="rdv-client" type="text" placeholder="Nom du client">
     <label>Véhicule</label><input id="rdv-vehicle" type="text" placeholder="Modèle du véhicule">
     <label>Service demandé</label>
-    <select id="rdv-service">
+    <select id="rdv-service" onchange="updateRdvPricePreview()">
       <option value="interieur">Intérieur Voiture</option>
       <option value="exterieur">Extérieur Voiture</option>
       <option value="complet">Nettoyage Complet</option>
     </select>
     <label>Options supplémentaires</label>
     <div id="rdv-options" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;">
-      <label style="font-size:14px;"><input type="checkbox" value="siege-bebe" id="opt-siege"> Siège bébé</label>
-      <label style="font-size:14px;"><input type="checkbox" value="poils-animaux" id="opt-poils"> Poils d'animaux</label>
+      <label style="font-size:14px;"><input type="checkbox" value="siege-bebe" id="opt-siege" data-price="5" onchange="updateRdvPricePreview()"> Siège bébé (+5€)</label>
+      <label style="font-size:14px;"><input type="checkbox" value="poils-animaux" id="opt-poils" data-price="7" onchange="updateRdvPricePreview()"> Poils d'animaux (+7€)</label>
     </div>
+    <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+      <input id="opt-custom-label" type="text" placeholder="Autre option (ex: lavage jantes)" style="flex:1;padding:6px;border-radius:6px;border:1px solid #ddd;">
+      <input id="opt-custom-price" type="number" placeholder="€" style="width:80px;padding:6px;border-radius:6px;border:1px solid #ddd;"> 
+      <button onclick="addCustomOption()" style="background:#1e90ff;color:#fff;padding:6px 10px;border-radius:8px;border:none;">Ajouter</button>
+    </div>
+    <div style="margin-top:8px;font-size:14px;color:#06314d">Prix estimé: <span id="rdv-price-preview">0 €</span></div>
   <label>Choisir une date/une plage horaire</label>
     <!-- Use native datetime-local picker (same as Profil) so RDV UI matches Profil -->
     <input id="rdv-slot" type="datetime-local">
@@ -373,6 +380,21 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   </div>
   <div style="margin-top:8px;text-align:right;"><button id="auth-logout" onclick="logoutUser()" style="display:none;background:transparent;border:none;color:#d00;">Déconnexion</button></div>
 </div>
+<!-- manage tariffs button (owner only) -->
+<button id="auth-manage-tariffs" onclick="openTariffsModal()" style="display:none; position:fixed; right:18px; top:86px; background:#06314d;color:#fff;padding:8px;border-radius:8px;border:none; z-index:160;">Gérer tarifs</button>
+
+<!-- Tariffs modal (owner only) -->
+<div id="tariffs-modal" style="display:none; position:fixed; left:50%; transform:translateX(-50%); top:12%; width:92%; max-width:520px; background:#fff; border-radius:12px; padding:12px; box-shadow:0 20px 50px rgba(3,34,56,0.22); z-index:160;">
+  <h3>Gérer les tarifs</h3>
+  <div style="display:grid;grid-template-columns:1fr 90px;gap:8px;align-items:center;">
+    <label>Intérieur (€)</label><input id="tariff-interieur" type="number" step="0.01" style="padding:8px;border-radius:6px;border:1px solid #ddd;">
+    <label>Extérieur (€)</label><input id="tariff-exterieur" type="number" step="0.01" style="padding:8px;border-radius:6px;border:1px solid #ddd;">
+    <label>Complet (€)</label><input id="tariff-complet" type="number" step="0.01" style="padding:8px;border-radius:6px;border:1px solid #ddd;">
+    <label>Siège bébé (€)</label><input id="tariff-siege-bebe" type="number" step="0.01" style="padding:8px;border-radius:6px;border:1px solid #ddd;">
+    <label>Poils d'animaux (€)</label><input id="tariff-poils-animaux" type="number" step="0.01" style="padding:8px;border-radius:6px;border:1px solid #ddd;">
+  </div>
+  <div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end;"><button onclick="saveTariffs()" style="background:#1e90ff;color:#fff;padding:8px;border-radius:8px;border:none;">Enregistrer</button><button onclick="closeTariffsModal()" style="background:transparent;border:1px solid #ddd;padding:8px;border-radius:8px;">Fermer</button></div>
+</div>
 
 <!-- Cart modal -->
 <div id="cart-modal" class="cart-modal" aria-hidden="true">
@@ -392,6 +414,12 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 let cartCount = 0;
 let cart = JSON.parse(localStorage.getItem('bhw_cart') || '[]');
 let subscriptions = JSON.parse(localStorage.getItem('bhw_subscriptions') || '[]');
+// Tariffs configuration (default). Persisted in localStorage 'bhw_tariffs'
+const DEFAULT_TARIFFS = {
+  services: { interieur: 20, exterieur: 15, complet: 30 },
+  options: { 'siege-bebe': 5, 'poils-animaux': 7 }
+};
+let tariffs = JSON.parse(localStorage.getItem('bhw_tariffs') || 'null') || DEFAULT_TARIFFS;
 // initialize cartCount from stored cart
 cartCount = cart.reduce((s,i)=>s + (i.qty||1), 0);
 document.addEventListener('DOMContentLoaded', () => {
@@ -643,8 +671,17 @@ function submitRdv(){
   const vehicle = document.getElementById('rdv-vehicle').value.trim();
   const serviceEl = document.getElementById('rdv-service');
   const service = (serviceEl && serviceEl.options && serviceEl.options[serviceEl.selectedIndex]) ? serviceEl.options[serviceEl.selectedIndex].text : (serviceEl ? serviceEl.value : '');
-  // gather checked options as human-readable labels
-  const options = Array.from(document.querySelectorAll('#rdv-options input[type=checkbox]:checked')).map(cb => cb.parentElement ? cb.parentElement.textContent.trim() : (cb.value || '') );
+  // gather checked options as objects {label, price}
+  const options = Array.from(document.querySelectorAll('#rdv-options input[type=checkbox]:checked')).map(cb => {
+    // price priority: explicit dataset.price (custom), else tariffs.options by value
+    const price = cb.dataset && cb.dataset.price ? Number(cb.dataset.price) : (tariffs.options[cb.value] ? Number(tariffs.options[cb.value]) : 0);
+    const label = cb.parentElement ? cb.parentElement.textContent.replace(/\+.*€/, '').trim() : (cb.value || '');
+    return { label, price };
+  });
+  // include custom option inputs if filled
+  const customLabel = (document.getElementById('opt-custom-label')||{}).value || '';
+  const customPrice = Number((document.getElementById('opt-custom-price')||{}).value) || 0;
+  if(customLabel.trim()){ options.push({ label: customLabel.trim(), price: customPrice }); }
   const slot = document.getElementById('rdv-slot').value;
   const payment = document.getElementById('rdv-payment').value;
   if(!client || !vehicle || !slot){ showToast('Veuillez renseigner nom, véhicule et choisir une plage horaire'); return; }
@@ -656,7 +693,12 @@ function submitRdv(){
     return;
   }
   const created = new Date().toISOString();
-  pending.push({ client, vehicle, service, options, slot, payment, created });
+  // compute total price: base service + options
+  // determine basePrice from tariffs config
+  const basePrice = tariffs.services[(serviceEl && serviceEl.value) || service] || tariffs.services[service] || 0;
+  const optionsTotal = (options || []).reduce((s,o)=>s + (o.price || 0), 0);
+  const totalPrice = basePrice + optionsTotal;
+  pending.push({ client, vehicle, service, options, slot, payment, created, totalPrice });
   try{ localStorage.setItem('bhw_rdv_pending', JSON.stringify(pending)); }catch(e){}
   // remember last client on this device to show "Mes demandes"
   try{ localStorage.setItem('bhw_last_client', client); }catch(e){}
@@ -695,8 +737,9 @@ function renderMyPendingRdv(){
     const d = new Date(p.slot);
     const div = document.createElement('div');
     div.style.border='1px dashed #cfe8ff'; div.style.padding='8px'; div.style.marginBottom='8px'; div.style.borderRadius='8px';
-    const opts = (p.options && p.options.length) ? `<div style="color:#444;font-size:13px">Options: ${p.options.join(', ')}</div>` : '';
-    div.innerHTML = `<div style="font-weight:700">${p.client} — ${p.vehicle}</div><div style="color:#444;font-size:13px">${d.toLocaleString()} • ${p.service}</div>${opts}<div style="margin-top:8px"><button onclick="cancelPending('${p.created}')" style="background:transparent;border:1px solid #d00;color:#d00;padding:6px 10px;border-radius:6px;cursor:pointer">Annuler la demande</button></div>`;
+    const opts = (p.options && p.options.length) ? `<div style="color:#444;font-size:13px">Options: ${p.options.map(o=>o.label+(o.price?(' (+'+o.price+'€)'):'')).join(', ')}</div>` : '';
+    const priceLine = (p.totalPrice !== undefined) ? `<div style="color:#06314d;font-weight:700;margin-top:6px">Prix estimé: ${p.totalPrice.toFixed(2)} €</div>` : '';
+  div.innerHTML = `<div style="font-weight:700">${p.client} — ${p.vehicle}</div><div style="color:#444;font-size:13px">${d.toLocaleString()} • ${p.service}</div>${opts}${priceLine}<div style="margin-top:8px;display:flex;gap:8px"><button onclick="cancelPending('${p.created}')" style="background:transparent;border:1px solid #d00;color:#d00;padding:6px 10px;border-radius:6px;cursor:pointer">Annuler la demande</button><button onclick="addRdvPendingToCart('${p.created}')" style="background:#1e90ff;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer">Ajouter au panier</button></div>`;
     container.appendChild(div);
   });
 }
@@ -723,11 +766,13 @@ function renderPendingRdv(){
     const div = document.createElement('div');
     div.style.border = '1px solid #e6eef9'; div.style.padding='8px'; div.style.marginBottom='8px'; div.style.borderRadius='8px';
     const d = new Date(p.slot);
-    const opts = (p.options && p.options.length) ? `<div style="font-size:13px;color:#444">Options: ${p.options.join(', ')}</div>` : '';
+    const opts = (p.options && p.options.length) ? `<div style="font-size:13px;color:#444">Options: ${p.options.map(o=>o.label+(o.price?(' (+'+o.price+'€)'):'')).join(', ')}</div>` : '';
+    const priceLine = (p.totalPrice !== undefined) ? `<div style="color:#06314d;font-weight:700;margin-top:6px">Prix estimé: ${p.totalPrice.toFixed(2)} €</div>` : '';
     div.innerHTML = `<div style="font-weight:700">${p.client} — ${p.vehicle}</div>
       <div style="font-size:13px;color:#444">${d.toLocaleString()} • ${p.service} • ${p.payment}</div>
       ${opts}
-      <div style="margin-top:8px"><button onclick="acceptRdv(${idx})" style="margin-right:8px;background:#1e90ff;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer">Accepter</button><button onclick="rejectRdv(${idx})" style="background:transparent;border:1px solid #d00;color:#d00;padding:6px 10px;border-radius:6px;cursor:pointer">Refuser</button></div>`;
+      ${priceLine}
+      <div style="margin-top:8px;display:flex;gap:8px"><button onclick="acceptRdv(${idx})" style="margin-right:8px;background:#1e90ff;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer">Accepter</button><button onclick="rejectRdv(${idx})" style="background:transparent;border:1px solid #d00;color:#d00;padding:6px 10px;border-radius:6px;cursor:pointer">Refuser</button><button onclick="addRdvPendingToCartByIndex(${idx})" style="background:#0b61a6;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer">Ajouter au panier</button></div>`;
     container.appendChild(div);
   });
 }
@@ -742,7 +787,7 @@ function acceptRdv(index){
   // remove item from pending and keep it as accepted
   pending.splice(index,1);
   // save confirmed appointment as next RDV
-  const newNext = { client: item.client, vehicle: item.vehicle, service: item.service, options: item.options || [], slot: item.slot, payment: item.payment, acceptedAt: new Date().toISOString() };
+  const newNext = { client: item.client, vehicle: item.vehicle, service: item.service, options: item.options || [], slot: item.slot, payment: item.payment, totalPrice: item.totalPrice || 0, acceptedAt: new Date().toISOString() };
   try{ localStorage.setItem('bhw_next_rdv', JSON.stringify(newNext)); } catch(e){}
   // also save per-client mapping so the client's profile (by name) can display their next RDV
   try{
@@ -759,6 +804,8 @@ function acceptRdv(index){
   }
   showToast('RDV accepté — indiqué dans le profil');
   renderPendingRdv();
+  // open invoice/summary for the accepted RDV
+  try{ generateInvoice(newNext); }catch(e){}
   // calendar regenerated not needed; using native input
 }
 
@@ -789,6 +836,53 @@ function loadNextRdvToProfile(){
     }
   }catch(e){ /* ignore parse errors */ }
   if(next && next.slot){ prof.value = next.slot; }
+  // Render action buttons for next RDV (view invoice / add to cart)
+  try{
+    const actions = document.getElementById('profil-next-actions');
+    if(!actions) return;
+    actions.innerHTML = '';
+    // prefer per-client mapping if available
+    let nextRdv = next;
+    try{ const nameInput = document.querySelector('#profil input[type=text]'); const profileName = (nameInput && nameInput.value && nameInput.value.trim()) ? nameInput.value.trim() : null; if(profileName){ const byClient = JSON.parse(localStorage.getItem('bhw_next_rdv_by_client')||'{}'); if(byClient[profileName]) nextRdv = byClient[profileName]; } }catch(e){}
+    if(nextRdv){
+      const btnInvoice = document.createElement('button'); btnInvoice.textContent = 'Voir facture'; btnInvoice.style.marginRight='8px'; btnInvoice.style.padding='8px'; btnInvoice.style.borderRadius='8px'; btnInvoice.style.border='none'; btnInvoice.style.background='#1e90ff'; btnInvoice.style.color='#fff'; btnInvoice.onclick = ()=> generateInvoice(nextRdv);
+      const btnAdd = document.createElement('button'); btnAdd.textContent = 'Ajouter au panier'; btnAdd.style.padding='8px'; btnAdd.style.borderRadius='8px'; btnAdd.style.border='none'; btnAdd.style.background='#06314d'; btnAdd.style.color='#fff'; btnAdd.onclick = ()=>{ addAcceptedRdvToCart(); };
+      actions.appendChild(btnInvoice); actions.appendChild(btnAdd);
+    }
+  }catch(e){}
+}
+
+// --- RDV price helpers and custom option support ---
+function updateRdvPricePreview(){
+  const serviceEl = document.getElementById('rdv-service');
+  if(!serviceEl) return;
+  const serviceBasePrices = { 'interieur':20, 'exterieur':15, 'complet':30, 'Intérieur Voiture':20, 'Extérieur Voiture':15, 'Nettoyage Complet':30 };
+  const basePrice = tariffs.services[serviceEl.value] || 0;
+  const opts = Array.from(document.querySelectorAll('#rdv-options input[type=checkbox]'));
+  const optionsTotal = opts.filter(cb=>cb.checked).reduce((s,cb)=>s + ( (cb.dataset && cb.dataset.price) ? Number(cb.dataset.price) : (tariffs.options[cb.value] ? Number(tariffs.options[cb.value]) : 0) ), 0);
+  // include custom inputs if present
+  const customPrice = Number((document.getElementById('opt-custom-price')||{}).value) || 0;
+  const total = basePrice + optionsTotal + customPrice;
+  const preview = document.getElementById('rdv-price-preview'); if(preview) preview.textContent = total.toFixed(2) + ' €';
+  return total;
+}
+
+function addCustomOption(){
+  const label = (document.getElementById('opt-custom-label')||{}).value.trim();
+  const price = Number((document.getElementById('opt-custom-price')||{}).value) || 0;
+  if(!label){ showToast('Entrez une étiquette pour l\'option'); return; }
+  // create checkbox inside rdv-options
+  const container = document.getElementById('rdv-options'); if(!container) return;
+  const id = 'opt-custom-' + Date.now();
+  const lab = document.createElement('label'); lab.style.fontSize = '14px';
+  const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = id; cb.id = id; cb.dataset.price = price; cb.onchange = updateRdvPricePreview;
+  lab.appendChild(cb);
+  lab.appendChild(document.createTextNode(' ' + label + (price ? (' (+'+price+'€)') : '')));
+  container.appendChild(lab);
+  // clear custom inputs
+  document.getElementById('opt-custom-label').value = '';
+  document.getElementById('opt-custom-price').value = '';
+  updateRdvPricePreview();
 }
 
 // ensure slots & next RDV loaded on DOM ready
@@ -805,6 +899,7 @@ function updateAuthUI(){
   const authBtn = document.getElementById('auth-btn');
   const adminCheckbox = document.getElementById('admin-mode');
   const logoutBtn = document.getElementById('auth-logout');
+  const manageTariffsBtn = document.getElementById('auth-manage-tariffs');
   if(authBtn){
     if(cu){ authBtn.textContent = cu.name + ' ▾'; }
     else { authBtn.textContent = 'Se connecter'; }
@@ -814,6 +909,7 @@ function updateAuthUI(){
     if(isOwner()) adminCheckbox.parentElement.style.display = 'block';
     else { adminCheckbox.parentElement.style.display = 'none'; adminCheckbox.checked = false; const pendingContainer = document.getElementById('pending-rdvs'); if(pendingContainer) pendingContainer.style.display='none'; }
   }
+  if(manageTariffsBtn){ manageTariffsBtn.style.display = isOwner() ? 'inline-block' : 'none'; }
   if(logoutBtn){ logoutBtn.style.display = cu ? 'inline-block' : 'none'; }
   try{ renderMyPendingRdv(); }catch(e){}
 }
@@ -852,11 +948,82 @@ function loginUser(){
 
 function logoutUser(){ setCurrentUser(null); closeAuthModal(); showToast('Déconnecté'); }
 
+// --- Cart helpers for RDV ---
+function addRdvPendingToCart(created){
+  const pending = JSON.parse(localStorage.getItem('bhw_rdv_pending')||'[]');
+  const item = pending.find(p=>p.created === created);
+  if(!item){ showToast('RDV introuvable'); return; }
+  const name = `RDV: ${item.service} — ${item.client}`;
+  const price = Number(item.totalPrice || 0);
+  addToCart(null, name, price, 'rdv');
+  showToast('RDV ajouté au panier');
+}
+function addRdvPendingToCartByIndex(idx){
+  const pending = JSON.parse(localStorage.getItem('bhw_rdv_pending')||'[]');
+  if(idx<0 || idx>=pending.length) return; const item = pending[idx]; addRdvPendingToCart(item.created);
+}
+
+function addAcceptedRdvToCart(){
+  const next = JSON.parse(localStorage.getItem('bhw_next_rdv')||'null');
+  if(!next){ showToast('Aucun RDV confirmé'); return; }
+  const name = `RDV confirmé: ${next.service} — ${next.client}`;
+  addToCart(null, name, Number(next.totalPrice||0), 'rdv');
+  showToast('RDV confirmé ajouté au panier');
+}
+
+// --- Tariffs management ---
+function openTariffsModal(){ const m = document.getElementById('tariffs-modal'); if(!m) return; loadTariffsToUI(); m.style.display='block'; }
+function closeTariffsModal(){ const m = document.getElementById('tariffs-modal'); if(!m) return; m.style.display='none'; }
+function loadTariffsToUI(){ try{
+  document.getElementById('tariff-interieur').value = tariffs.services.interieur || 0;
+  document.getElementById('tariff-exterieur').value = tariffs.services.exterieur || 0;
+  document.getElementById('tariff-complet').value = tariffs.services.complet || 0;
+  document.getElementById('tariff-siege-bebe').value = tariffs.options['siege-bebe'] || 0;
+  document.getElementById('tariff-poils-animaux').value = tariffs.options['poils-animaux'] || 0;
+}catch(e){}
+}
+function saveTariffs(){ try{
+  tariffs.services.interieur = Number(document.getElementById('tariff-interieur').value)||0;
+  tariffs.services.exterieur = Number(document.getElementById('tariff-exterieur').value)||0;
+  tariffs.services.complet = Number(document.getElementById('tariff-complet').value)||0;
+  tariffs.options['siege-bebe'] = Number(document.getElementById('tariff-siege-bebe').value)||0;
+  tariffs.options['poils-animaux'] = Number(document.getElementById('tariff-poils-animaux').value)||0;
+  localStorage.setItem('bhw_tariffs', JSON.stringify(tariffs));
+  closeTariffsModal(); showToast('Tarifs enregistrés'); refreshOptionLabels(); updateRdvPricePreview();
+}catch(e){ showToast('Erreur sauvegarde tarifs'); }
+}
+// update option labels (reflect current tariffs)
+function refreshOptionLabels(){
+  try{
+    const siegeLabel = document.querySelector('#rdv-options label[for]') || document.querySelector('#opt-siege') && document.querySelector('#opt-siege').parentElement;
+    const siegeCb = document.getElementById('opt-siege'); if(siegeCb && siegeCb.parentElement) siegeCb.parentElement.innerHTML = `<input type="checkbox" value="siege-bebe" id="opt-siege" data-price="${tariffs.options['siege-bebe']}"> Siège bébé (+${tariffs.options['siege-bebe']}€)`;
+    const poilsCb = document.getElementById('opt-poils'); if(poilsCb && poilsCb.parentElement) poilsCb.parentElement.innerHTML = `<input type="checkbox" value="poils-animaux" id="opt-poils" data-price="${tariffs.options['poils-animaux']}"> Poils d'animaux (+${tariffs.options['poils-animaux']}€)`;
+    // reattach onchange handlers
+    const s = document.getElementById('opt-siege'); if(s) s.onchange = updateRdvPricePreview;
+    const p = document.getElementById('opt-poils'); if(p) p.onchange = updateRdvPricePreview;
+  }catch(e){}
+}
+
+// --- Invoice / recap generation ---
+function generateInvoice(rdv){
+  try{
+    const win = window.open('', '_blank');
+    if(!win) return;
+    const d = new Date(rdv.slot);
+    const lines = (rdv.options||[]).map(o=>`<tr><td>${o.label}</td><td style="text-align:right">${(o.price||0).toFixed(2)} €</td></tr>`).join('');
+    const baseLabel = rdv.service || 'Service';
+    const basePrice = Number(rdv.totalPrice || 0) - (rdv.options||[]).reduce((s,o)=>s+(o.price||0),0);
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Facture RDV</title><style>body{font-family:Arial,sans-serif;padding:20px}table{width:100%;border-collapse:collapse}td{padding:6px;border-bottom:1px solid #eee}</style></head><body><h2>Facture - RDV</h2><div><strong>Client:</strong> ${rdv.client}</div><div><strong>Véhicule:</strong> ${rdv.vehicle}</div><div><strong>Date:</strong> ${d.toLocaleString()}</div><table><tr><td>${baseLabel}</td><td style="text-align:right">${basePrice.toFixed(2)} €</td></tr>${lines}<tr><td style="font-weight:700">Total</td><td style="text-align:right;font-weight:700">${Number(rdv.totalPrice||0).toFixed(2)} €</td></tr></table></body></html>`;
+    win.document.write(html); win.document.close();
+  }catch(e){ console.error(e); }
+}
+
 // ensure slots & next RDV loaded on DOM ready
 document.addEventListener('DOMContentLoaded', ()=>{
   try{ loadNextRdvToProfile(); }catch(e){}
   try{ renderMyPendingRdv(); }catch(e){}
   try{ updateAuthUI(); }catch(e){}
+  try{ refreshOptionLabels(); }catch(e){}
 });
 
 </body>
