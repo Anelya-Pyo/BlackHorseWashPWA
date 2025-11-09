@@ -160,6 +160,18 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 .rdv-slot-btn.selected { background:#1e90ff; color:#fff; border-color:#1e90ff; }
 .rdv-slot-btn:disabled, .rdv-slot-btn.taken { background:#f1f5f9; color:#9aa7b8; border-color:#e6eef6; cursor:not-allowed; }
 
+/* legend for slot states */
+.rdv-legend { display:flex; gap:10px; align-items:center; margin-top:8px; margin-bottom:6px; }
+.legend-item { display:flex; gap:8px; align-items:center; font-size:13px; color:#06314d; }
+.legend-swatch { width:18px; height:18px; border-radius:4px; border:1px solid #dbeffb; display:inline-block; }
+.legend-available { background:#fff; border-color:#dbeffb; }
+.legend-selected { background:#1e90ff; border-color:#1e90ff; }
+.legend-taken { background:#f1f5f9; border-color:#e6eef6; }
+
+/* tweak RDV nav svg visual style specifically */
+.bottom-nav .nav-item[data-target="rdv"] svg { background: rgba(255,255,255,0.06); padding:4px; border-radius:6px; }
+.bottom-nav .nav-item[data-target="rdv"].active svg { background: rgba(255,255,255,0.12); }
+
 </style>
 </head>
 <body>
@@ -227,9 +239,14 @@ h1,h2 { margin-bottom:15px; text-align:center; }
       <option>Options (Siège bébé, poils animaux)</option>
     </select>
   <label>Choisir une date/une plage horaire</label>
-  <!-- hidden input stores the selected ISO slot value; calendar below is the visual picker -->
-  <input type="hidden" id="rdv-slot" aria-hidden="true">
-  <div id="rdv-calendar" class="rdv-calendar" aria-live="polite"></div>
+    <!-- hidden input stores the selected ISO slot value; calendar below is the visual picker -->
+    <input type="hidden" id="rdv-slot" aria-hidden="true">
+    <div class="rdv-legend" aria-hidden="false">
+      <div class="legend-item"><span class="legend-swatch legend-available" aria-hidden="true"></span><span>Disponible</span></div>
+      <div class="legend-item"><span class="legend-swatch legend-selected" aria-hidden="true"></span><span>Sélectionné</span></div>
+      <div class="legend-item"><span class="legend-swatch legend-taken" aria-hidden="true"></span><span>Occupé / Réservé</span></div>
+    </div>
+    <div id="rdv-calendar" class="rdv-calendar" aria-live="polite" aria-label="Sélecteur de créneaux"></div>
     <label>Paiement</label>
     <select id="rdv-payment">
       <option>Carte bancaire</option>
@@ -297,8 +314,10 @@ h1,h2 { margin-bottom:15px; text-align:center; }
     <span class="label">Produits</span>
   </a>
   <a href="#" class="nav-item" data-target="rdv" onclick="showSection('rdv');return false;" aria-label="Réserver">
-    <!-- Calendar / RDV SVG -->
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path fill="currentColor" d="M7 10h10v6H7v-6zm8-6h2v2h-2V4zM9 4h2v2H9V4zM3 8h18v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"></path></svg>
+    <!-- Google-like calendar SVG (more visible date grid) -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM5 9h14v11H5V9zM7 11h5v5H7z"/>
+    </svg>
     <span class="label">RDV</span>
   </a>
   <a href="#" class="nav-item" data-target="profil" onclick="showSection('profil');return false;" aria-label="Profil">
