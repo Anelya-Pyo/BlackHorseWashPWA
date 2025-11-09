@@ -183,10 +183,6 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   <div class="cart-summary" onclick="showCart()" role="button" aria-label="Ouvrir le panier">
     Panier: <span id="cart-count">0</span>
   </div>
-  <div id="auth-summary">
-    <button id="auth-btn">Se connecter</button>
-    <a href="#" id="profile-tab" style="display:none;">Profil</a>
-  </div>
 </header>
 
 <main>
@@ -322,7 +318,7 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 <nav class="bottom-nav" role="navigation" aria-label="Navigation principale" style="display:flex;align-items:center;justify-content:space-between;">
 
   <!-- Se connecter à gauche -->
-  <a href="#" class="nav-item" data-target="login" onclick="openAuthModal();return false;" aria-label="Se connecter" style="order:-1;">
+  <a href="#" id="auth-btn-bottom" class="nav-item" data-target="login" onclick="openAuthModal();return false;" aria-label="Se connecter" style="order:-1;">
     <!-- User SVG pour connexion -->
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
       <path fill="currentColor" d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/>
@@ -362,13 +358,11 @@ h1,h2 { margin-bottom:15px; text-align:center; }
     <span class="label">RDV</span>
   </a>
 
-  <!-- Profil -->
-  <a href="#" class="nav-item" data-target="profil" onclick="showSection('profil');return false;" aria-label="Profil">
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-      <path fill="currentColor" d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/>
-    </svg>
-    <span class="label">Profil</span>
-  </a>
+<!-- Profil (caché par défaut) -->
+<a href="#" class="nav-item" id="profile-tab-bottom" data-target="profil" style="display:none;" onclick="showSection('profil');return false;">
+  <img src="image/profile-icon.svg" alt="Profil">
+  <span class="label">Profil</span>
+</a>
 
   <!-- Promo / Concours -->
   <a href="#" class="nav-item" data-target="promo" onclick="showSection('promo');return false;" aria-label="Promotions / Concours">
@@ -1191,6 +1185,52 @@ document.addEventListener('DOMContentLoaded', ()=>{
     profilSection.scrollIntoView({behavior:'smooth'});
   });
 })();
+</script>
+<!-- SCRIPT -->
+<script>
+// Attendre que le DOM soit chargé
+document.addEventListener('DOMContentLoaded', function() {
+
+  const authBtnBottom = document.getElementById('auth-btn-bottom');
+  const profileTabBottom = document.getElementById('profile-tab-bottom');
+  const profilSection = document.getElementById('profil');
+
+  function updateUI() {
+    const user = JSON.parse(localStorage.getItem('loggedUser') || 'null');
+    if(user){
+      authBtnBottom.querySelector('.label').textContent = user.name || 'Déconnexion';
+      profileTabBottom.style.display = 'flex';
+      profilSection.style.display = 'block';
+      profilSection.querySelector('input[placeholder="Nom du client"]').value = user.name || '';
+      profilSection.querySelector('input[placeholder="Modèle du véhicule"]').value = user.vehicle || '';
+      profilSection.querySelector('input[placeholder="Adresse"]').value = user.address || '';
+    } else {
+      authBtnBottom.querySelector('.label').textContent = 'Se connecter';
+      profileTabBottom.style.display = 'none';
+      profilSection.style.display = 'none';
+    }
+  }
+
+  updateUI();
+
+  authBtnBottom.addEventListener('click', function(e){
+    e.preventDefault();
+    const user = JSON.parse(localStorage.getItem('loggedUser') || 'null');
+    if(user){
+      localStorage.removeItem('loggedUser');
+      updateUI();
+    } else {
+      openAuthModal();
+    }
+  });
+
+  profileTabBottom.addEventListener('click', function(e){
+    e.preventDefault();
+    showSection('profil');
+    profilSection.scrollIntoView({behavior:'smooth'});
+  });
+
+});
 </script>
 </body>
 </html>
