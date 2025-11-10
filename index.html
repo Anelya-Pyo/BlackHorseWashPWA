@@ -314,18 +314,6 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   </section>
 </main>
 
-<!-- NAVIGATION (redesign) -->
-<nav class="bottom-nav" role="navigation" aria-label="Navigation principale" style="display:flex;align-items:center;justify-content:space-between;">
-
-  <!-- Se connecter à gauche -->
-  <a href="#" id="auth-btn-bottom" class="nav-item" data-target="login" onclick="openAuthModal();return false;" aria-label="Se connecter" style="order:-1;">
-    <!-- User SVG pour connexion -->
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-      <path fill="currentColor" d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/>
-    </svg>
-    <span class="label">Se connecter</span>
-  </a>
-
   <!-- Accueil -->
   <a href="#" class="nav-item" data-target="home" onclick="showSection('home');return false;" aria-label="Accueil">
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -1231,6 +1219,52 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
 });
+</script>
+<!-- NAVIGATION (redesign) -->
+<nav class="bottom-nav" role="navigation" aria-label="Navigation principale" style="display:flex;align-items:center;justify-content:space-between;">
+
+  <!-- Se connecter à gauche -->
+  <a href="#" id="auth-btn-bottom" class="nav-item" data-target="login" onclick="openAuthModal();return false;" aria-label="Se connecter" style="order:-1;">
+    <!-- User SVG pour connexion -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/>
+    </svg>
+    <span class="label">Se connecter</span>
+  </a>
+</nav>
+!-- Script qui gère connexion / profil -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const authBtnBottom = document.getElementById('auth-btn-bottom');
+    const profileTabBottom = document.getElementById('profile-tab-bottom');
+    const profilSection = document.getElementById('profil');
+
+    function updateUI() {
+      const user = JSON.parse(localStorage.getItem('loggedUser') || 'null');
+      if (user) {
+        authBtnBottom.querySelector('.label').textContent = user.name || 'Déconnexion';
+        profileTabBottom.style.display = 'flex';
+        profilSection.style.display = 'block';
+      } else {
+        authBtnBottom.querySelector('.label').textContent = 'Se connecter';
+        profileTabBottom.style.display = 'none';
+        profilSection.style.display = 'none';
+      }
+    }
+
+    updateUI();
+
+    authBtnBottom.addEventListener('click', (e) => {
+      e.preventDefault();
+      const user = JSON.parse(localStorage.getItem('loggedUser') || 'null');
+      if (user) {
+        localStorage.removeItem('loggedUser');
+        updateUI();
+      } else {
+        openAuthModal();
+      }
+    });
+  });
 </script>
 </body>
 </html>
