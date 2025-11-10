@@ -176,7 +176,6 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 
 </style>
 </head>
-<body>
 
 <header>
   <img src="image/logo.jpg" alt="Logo Black Horse Wash">
@@ -187,6 +186,51 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 
 <main>
 <body>
+  <script>
+// Attendre que le DOM soit chargé
+document.addEventListener('DOMContentLoaded', function() {
+
+  const authBtnBottom = document.getElementById('auth-btn-bottom');
+  const profileTabBottom = document.getElementById('profile-tab-bottom');
+  const profilSection = document.getElementById('profil');
+
+  function updateUI() {
+    const user = JSON.parse(localStorage.getItem('loggedUser') || 'null');
+    if(user){
+      authBtnBottom.querySelector('.label').textContent = user.name || 'Déconnexion';
+      profileTabBottom.style.display = 'flex';
+      profilSection.style.display = 'block';
+      profilSection.querySelector('input[placeholder="Nom du client"]').value = user.name || '';
+      profilSection.querySelector('input[placeholder="Modèle du véhicule"]').value = user.vehicle || '';
+      profilSection.querySelector('input[placeholder="Adresse"]').value = user.address || '';
+    } else {
+      authBtnBottom.querySelector('.label').textContent = 'Se connecter';
+      profileTabBottom.style.display = 'none';
+      profilSection.style.display = 'none';
+    }
+  }
+
+  updateUI();
+
+  authBtnBottom.addEventListener('click', function(e){
+    e.preventDefault();
+    const user = JSON.parse(localStorage.getItem('loggedUser') || 'null');
+    if(user){
+      localStorage.removeItem('loggedUser');
+      updateUI();
+    } else {
+      openAuthModal();
+    }
+  });
+
+  profileTabBottom.addEventListener('click', function(e){
+    e.preventDefault();
+    showSection('profil');
+    profilSection.scrollIntoView({behavior:'smooth'});
+  });
+
+});
+</script>
   <!-- ACCUEIL -->
   <section id="home" class="active">
     <h1>Black Horse Wash</h1>
@@ -1205,51 +1249,7 @@ function updateUI() {
 }());
 </script>
 <!-- SCRIPT -->
-<script>
-// Attendre que le DOM soit chargé
-document.addEventListener('DOMContentLoaded', function() {
 
-  const authBtnBottom = document.getElementById('auth-btn-bottom');
-  const profileTabBottom = document.getElementById('profile-tab-bottom');
-  const profilSection = document.getElementById('profil');
-
-  function updateUI() {
-    const user = JSON.parse(localStorage.getItem('loggedUser') || 'null');
-    if(user){
-      authBtnBottom.querySelector('.label').textContent = user.name || 'Déconnexion';
-      profileTabBottom.style.display = 'flex';
-      profilSection.style.display = 'block';
-      profilSection.querySelector('input[placeholder="Nom du client"]').value = user.name || '';
-      profilSection.querySelector('input[placeholder="Modèle du véhicule"]').value = user.vehicle || '';
-      profilSection.querySelector('input[placeholder="Adresse"]').value = user.address || '';
-    } else {
-      authBtnBottom.querySelector('.label').textContent = 'Se connecter';
-      profileTabBottom.style.display = 'none';
-      profilSection.style.display = 'none';
-    }
-  }
-
-  updateUI();
-
-  authBtnBottom.addEventListener('click', function(e){
-    e.preventDefault();
-    const user = JSON.parse(localStorage.getItem('loggedUser') || 'null');
-    if(user){
-      localStorage.removeItem('loggedUser');
-      updateUI();
-    } else {
-      openAuthModal();
-    }
-  });
-
-  profileTabBottom.addEventListener('click', function(e){
-    e.preventDefault();
-    showSection('profil');
-    profilSection.scrollIntoView({behavior:'smooth'});
-  });
-
-});
-</script>
 <!-- NAVIGATION (redesign) -->
 <nav class="bottom-nav" role="navigation" aria-label="Navigation principale"
   style="position:fixed; bottom:0; left:0; width:100%; background:#fff; border-top:1px solid #ccc;
