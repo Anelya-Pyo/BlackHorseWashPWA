@@ -1242,10 +1242,19 @@ function updateUI() {
   });
 });
 
-  profileTab.addEventListener('click', (e)=>{
-    e.preventDefault();
-    profilSection.scrollIntoView({behavior:'smooth'});
-  });
+document.addEventListener('DOMContentLoaded', () => {
+  const profileTab = document.getElementById('profile-tab-bottom');
+  const profilSection = document.getElementById('profil');
+
+  // Vérifier que les éléments existent
+  if (profileTab && profilSection) {
+    profileTab.addEventListener('click', (e) => {
+      e.preventDefault();
+      profilSection.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+});
+
 }());
 </script>
 <!-- SCRIPT -->
