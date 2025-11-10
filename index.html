@@ -1221,27 +1221,44 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <!-- NAVIGATION (redesign) -->
-<nav class="bottom-nav" role="navigation" aria-label="Navigation principale" style="display:flex;align-items:center;justify-content:space-between;">
+<nav class="bottom-nav" role="navigation" aria-label="Navigation principale"
+  style="position:fixed; bottom:0; left:0; width:100%; background:#fff; border-top:1px solid #ccc;
+         display:flex; justify-content:space-around; align-items:center; padding:8px 0; z-index:1000;">
 
-   <!-- Se connecter à gauche -->
-  <a href="#" id="auth-btn-bottom" class="nav-item" data-target="login" onclick="openAuthModal();return false;" aria-label="Se connecter" style="order:-1;">
-    <!-- User SVG pour connexion -->
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-      <path fill="currentColor" d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/>
+  <!-- Accueil -->
+  <a href="#" class="nav-item" data-target="accueil" aria-label="Accueil" onclick="showSection('accueil'); return false;">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+    </svg>
+    <span class="label">Accueil</span>
+  </a>
+
+  <!-- Réservations -->
+  <a href="#" class="nav-item" data-target="reservations" aria-label="Réservations" onclick="showSection('reservations'); return false;">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M19 3H5a2 2 0 0 0-2 2v16l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/>
+    </svg>
+    <span class="label">Réservations</span>
+  </a>
+
+  <!-- Se connecter / Déconnexion -->
+  <a href="#" id="auth-btn-bottom" class="nav-item" data-target="login" onclick="openAuthModal();return false;" aria-label="Se connecter">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/>
     </svg>
     <span class="label">Se connecter</span>
   </a>
 
-  <!-- Profil (caché par défaut, affiché après connexion) -->
+  <!-- Profil (affiché après connexion) -->
   <a href="#" id="profile-tab-bottom" class="nav-item" data-target="profil" style="display:none;" aria-label="Profil">
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-      <path fill="currentColor" d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/>
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/>
     </svg>
     <span class="label">Profil</span>
   </a>
 </nav>
 
-<!-- Script qui gère connexion / profil -->
+<!-- Script connexion / profil -->
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     const authBtnBottom = document.getElementById('auth-btn-bottom');
@@ -1250,10 +1267,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateUI() {
       const user = JSON.parse(localStorage.getItem('loggedUser') || 'null');
-      if (!authBtnBottom || !profileTabBottom || !profilSection) {
-        console.warn("Un élément n'a pas été trouvé dans le DOM.");
-        return;
-      }
+      if (!authBtnBottom || !profileTabBottom || !profilSection) return;
 
       if (user) {
         authBtnBottom.querySelector('.label').textContent = user.name || 'Déconnexion';
