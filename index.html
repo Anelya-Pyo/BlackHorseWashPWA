@@ -704,9 +704,16 @@ function showToast(message){
 }
 function showSection(id){
   // Affiche la section demandée (single-page behavior)
-  document.querySelectorAll('main section').forEach(sec => sec.classList.remove('active'));
+  const sections = document.querySelectorAll('main section');
+  sections.forEach(sec => {
+    sec.classList.remove('active');
+    try{ sec.style.display = 'none'; }catch(e){}
+  });
   const target = document.getElementById(id);
-  if(target) target.classList.add('active');
+  if(target){
+    target.classList.add('active');
+    try{ target.style.display = 'block'; }catch(e){}
+  }
 
   // Met à jour l'état actif du menu
   document.querySelectorAll('.bottom-nav .nav-item').forEach(item => {
