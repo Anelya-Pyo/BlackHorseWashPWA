@@ -221,6 +221,7 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   });
   </script>
 </head>
+<body>
 
 <header>
   <img src="image/logo.jpg" alt="Logo Black Horse Wash">
@@ -230,7 +231,6 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 </header>
 
 <main>
-<body>
  
   <!-- ACCUEIL -->
   <section id="home" class="active">
@@ -356,6 +356,7 @@ h1,h2 { margin-bottom:15px; text-align:center; }
     </div>
   </section>
 
+<nav class="bottom-nav" role="navigation" aria-label="Navigation principale">
   <!-- Accueil -->
   <a href="#" class="nav-item" data-target="home" onclick="showSection('home');return false;" aria-label="Accueil">
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -405,7 +406,6 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 
   <!-- Bouton Plus -->
   <div class="fab-more" role="button" aria-label="Plus" onclick="toggleMore();">+</div>
-
 </nav>
 
 <!-- Section pour Promo / Concours -->
@@ -974,7 +974,7 @@ function isOwner(){ const cu = getCurrentUser(); return cu && cu.role === 'patro
 
 function updateAuthUI(){
   const cu = getCurrentUser();
-  const authBtn = document.getElementById('auth-btn');
+  const authBtn = document.getElementById('auth-btn-bottom');
   const adminCheckbox = document.getElementById('admin-mode');
   const logoutBtn = document.getElementById('auth-logout');
   const manageTariffsBtn = document.getElementById('auth-manage-tariffs');
@@ -1104,242 +1104,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
   try{ refreshOptionLabels(); }catch(e){}
 });
 </script>
-<script>
-(function(){
-  const authBtn = document.getElementById('auth-btn');       
-  const profileTab = document.getElementById('profile-tab'); 
-  const profilSection = document.getElementById('profil');  
-  const authLogoutBtn = document.getElementById('auth-logout'); 
-
-  function updateUI() {
-    const user = JSON.parse(localStorage.getItem('loggedUser') || 'null');
-
-    if (user) {
-      if (authBtn) authBtn.textContent = 'Déconnexion'; 
-      if (profileTab) profileTab.style.display = 'inline-block'; 
-      if (profilSection) profilSection.style.display = 'block';  
-      if (authLogoutBtn) authLogoutBtn.style.display = 'inline-block';
-    } else {
-      if (authBtn) authBtn.textContent = 'Se connecter';
-      if (profileTab) profileTab.style.display = 'none';
-      if (profilSection) profilSection.style.display = 'none';
-      if (authLogoutBtn) authLogoutBtn.style.display = 'none';
-    }
-  }
-
-  function loginUserDemo() {
-    const emailInput = document.getElementById('auth-login-email');
-    const passInput = document.getElementById('auth-login-pass');
-    if (!emailInput || !passInput) return;
-
-    const email = emailInput.value.trim();
-    const pass = passInput.value.trim();
-    if (!email || !pass) { alert('Veuillez remplir tous les champs'); return; }
-
-    const accounts = JSON.parse(localStorage.getItem('accounts') || '[]');
-    const user = accounts.find(acc => acc.email === email && acc.pass === pass);
-    if (user) {
-      localStorage.setItem('loggedUser', JSON.stringify(user));
-      if (typeof closeAuthModal === 'function') closeAuthModal();
-      updateUI();
-      alert('Connecté en tant que ' + user.name);
-    } else {
-      alert('Email ou mot de passe incorrect');
-    }
-  }
-
-  function logoutUserDemo() {
-    localStorage.removeItem('loggedUser');
-    updateUI();
-  }
-
-  document.addEventListener('DOMContentLoaded', updateUI);
-
-  if (authBtn) authBtn.addEventListener('click', () => {
-    const user = JSON.parse(localStorage.getItem('loggedUser') || 'null');
-    if (user) {
-      logoutUserDemo();  
-    } else {
-      if (typeof loginUser === 'function') loginUser(); 
-    }
-  });
-
-  if (authLogoutBtn) authLogoutBtn.addEventListener('click', logoutUserDemo);
-})();
-</script>
-<script>
-(function(){
-  const authBtn = document.getElementById('auth-btn');
-  const profileTab = document.getElementById('profile-tab');
-  const profilSection = document.getElementById('profil');
-
-  // Pour la démo : crée un utilisateur si aucun n'existe
-  if(!localStorage.getItem('loggedUser')){
-    localStorage.setItem('loggedUser', JSON.stringify({
-      name: "Flo",
-      vehicle: "Renault Clio",
-      address: "123 Rue Exemple"
-    }));
-  }
-
-function updateUI() {
-  const authBtn = document.getElementById('authBtn');
-  const profileTab = document.getElementById('profileTab');
-  const profilSection = document.getElementById('profilSection');
-
-  if (!authBtn || !profileTab || !profilSection) return; // sécurité
-
-  const userStr = localStorage.getItem('loggedUser'); // null si pas connecté
-  if (userStr) {
-    authBtn.textContent = userStr; // userStr contient juste le nom
-    profileTab.style.display = 'inline-block';
-    profilSection.style.display = 'block';
-    profilSection.querySelector('input[placeholder="Nom du client"]').value = userStr;
-    profilSection.querySelector('input[placeholder="Modèle du véhicule"]').value = '';
-    profilSection.querySelector('input[placeholder="Adresse"]').value = '';
-  } else {
-    authBtn.textContent = 'Se connecter';
-    profileTab.style.display = 'none';
-    profilSection.style.display = 'none';
-  }
-}
-
-  document.addEventListener('DOMContentLoaded', () => {
-  const authBtn = document.getElementById('authBtn');
-  const profileTab = document.getElementById('profileTab');
-  const profilSection = document.getElementById('profilSection');
-
-  if (!authBtn || !profileTab || !profilSection) return; // sécurité
-
-  // Fonction pour mettre à jour l'UI
-  function updateUI() {
-    const user = localStorage.getItem('loggedUser'); // null si pas connecté
-    if (user) {
-      authBtn.textContent = user; // user contient juste le nom
-      profileTab.style.display = 'inline-block';
-      profilSection.style.display = 'block';
-      profilSection.querySelector('input[placeholder="Nom du client"]').value = user;
-      profilSection.querySelector('input[placeholder="Modèle du véhicule"]').value = '';
-      profilSection.querySelector('input[placeholder="Adresse"]').value = '';
-    } else {
-      authBtn.textContent = 'Se connecter';
-      profileTab.style.display = 'none';
-      profilSection.style.display = 'none';
-    }
-  }
-
-  // Mettre à jour l'UI au chargement
-  updateUI();
-
-  // Gestion du clic sur le bouton auth
-  authBtn.addEventListener('click', () => {
-    const user = localStorage.getItem('loggedUser'); // null si pas connecté
-    if (user) {
-      localStorage.removeItem('loggedUser'); // Déconnexion
-      updateUI();
-    } else {
-      alert("Ouvrir modal login ici");
-    }
-  });
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-  const profileTab = document.getElementById('profile-tab-bottom');
-  const profilSection = document.getElementById('profil');
-
-  // Vérifier que les éléments existent
-  if (profileTab && profilSection) {
-    profileTab.addEventListener('click', (e) => {
-      e.preventDefault();
-      profilSection.scrollIntoView({ behavior: 'smooth' });
-    });
-  }
-});
-
-}());
-</script>
+<!-- Removed duplicated auth/profile small scripts (they referenced alternative IDs like auth-btn/authBtn/profile-tab). Kept a single consistent auth implementation earlier that uses `auth-btn-bottom` and `profile-tab-bottom`. -->
 <!-- SCRIPT -->
 
-<!-- NAVIGATION (redesign) -->
-<nav class="bottom-nav" role="navigation" aria-label="Navigation principale"
-  style="position:fixed; bottom:0; left:0; width:100%; background:#fff; border-top:1px solid #ccc;
-         display:flex; justify-content:space-around; align-items:center; padding:8px 0; z-index:1000;">
-
-  <!-- Accueil -->
-  <a href="#" class="nav-item" data-target="accueil" aria-label="Accueil" onclick="showSection('accueil'); return false;">
-    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-    </svg>
-    <span class="label">Accueil</span>
-  </a>
-
-  <!-- Réservations -->
-  <a href="#" class="nav-item" data-target="reservations" aria-label="Réservations" onclick="showSection('reservations'); return false;">
-    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M19 3H5a2 2 0 0 0-2 2v16l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/>
-    </svg>
-    <span class="label">Réservations</span>
-  </a>
-
-  <!-- Se connecter / Déconnexion -->
-  <a href="#" id="auth-btn-bottom" class="nav-item" data-target="login" onclick="openAuthModal();return false;" aria-label="Se connecter">
-    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/>
-    </svg>
-    <span class="label">Se connecter</span>
-  </a>
-
-  <!-- Profil (affiché après connexion) -->
-  <a href="#" id="profile-tab-bottom" class="nav-item" data-target="profil" style="display:none;" aria-label="Profil">
-    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/>
-    </svg>
-    <span class="label">Profil</span>
-  </a>
-</nav>
-
-<!-- Script connexion / profil -->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const authBtnBottom = document.getElementById('auth-btn-bottom');
-    const profileTabBottom = document.getElementById('profile-tab-bottom');
-    const profilSection = document.getElementById('profil');
-
-    function updateUI() {
-      const user = JSON.parse(localStorage.getItem('loggedUser') || 'null');
-      if (!authBtnBottom || !profileTabBottom || !profilSection) return;
-
-      if (user) {
-        authBtnBottom.querySelector('.label').textContent = user.name || 'Déconnexion';
-        profileTabBottom.style.display = 'flex';
-        profilSection.style.display = 'block';
-      } else {
-        authBtnBottom.querySelector('.label').textContent = 'Se connecter';
-        profileTabBottom.style.display = 'none';
-        profilSection.style.display = 'none';
-      }
-    }
-
-    updateUI();
-
-    authBtnBottom.addEventListener('click', (e) => {
-      e.preventDefault();
-      const user = JSON.parse(localStorage.getItem('loggedUser') || 'null');
-      if (user) {
-        localStorage.removeItem('loggedUser');
-        updateUI();
-      } else {
-        openAuthModal();
-      }
-    });
-
-    profileTabBottom.addEventListener('click', (e) => {
-      e.preventDefault();
-      showSection('profil');
-    });
-  });
-  
-</script>
+<!-- Duplicate bottom navigation & small auth script removed (kept the main .bottom-nav earlier) -->
 
 </body>
 </html>
