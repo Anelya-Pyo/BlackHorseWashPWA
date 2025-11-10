@@ -345,7 +345,7 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 
 <!-- Profil (caché par défaut) -->
 <a href="#" class="nav-item" id="profile-tab-bottom" data-target="profil" style="display:none;" onclick="showSection('profil');return false;">
-  <img src="image/profile-icon.svg" alt="Profil">
+  <img src="image/Profil.jpg" alt="Profil">
   <span class="label">Profil</span>
 </a>
 
@@ -1137,39 +1137,40 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }));
   }
 
-  function updateUI(){
-    const user = JSON.parse(localStorage.getItem('loggedUser') || 'null');
-    if(user){
-      authBtn.textContent = user.name || 'Déconnexion';
-      profileTab.style.display = 'inline-block';
-      profilSection.style.display = 'block';
-      profilSection.querySelector('input[placeholder="Nom du client"]').value = user.name || '';
-      profilSection.querySelector('input[placeholder="Modèle du véhicule"]').value = user.vehicle || '';
-      profilSection.querySelector('input[placeholder="Adresse"]').value = user.address || '';
-    } else {
-      authBtn.textContent = 'Se connecter';
-      profileTab.style.display = 'none';
-      profilSection.style.display = 'none';
-    }
+  function updateUI() {
+  const userStr = localStorage.getItem('loggedUser'); // null si pas connecté
+  if (userStr) {
+    authBtn.textContent = userStr; // userStr contient juste le nom
+    profileTab.style.display = 'inline-block';
+    profilSection.style.display = 'block';
+    profilSection.querySelector('input[placeholder="Nom du client"]').value = userStr;
+    // Si tu n’as pas vehicle / address, tu peux laisser vide ou ajouter fallback
+    profilSection.querySelector('input[placeholder="Modèle du véhicule"]').value = '';
+    profilSection.querySelector('input[placeholder="Adresse"]').value = '';
+  } else {
+    authBtn.textContent = 'Se connecter';
+    profileTab.style.display = 'none';
+    profilSection.style.display = 'none';
   }
+}
 
   document.addEventListener('DOMContentLoaded', updateUI);
 
   authBtn.addEventListener('click', () => {
-    const user = JSON.parse(localStorage.getItem('loggedUser') || 'null');
-    if(user){
-      localStorage.removeItem('loggedUser'); // Déconnexion
-      updateUI();
-    } else {
-      alert("Ouvrir modal login ici"); // Remplace par ton modal si tu en as un
-    }
+const user = localStorage.getItem('loggedUser'); // null si pas connecté
+if (user) {
+  localStorage.removeItem('loggedUser'); // Déconnexion
+  updateUI();
+} else {
+  alert("Ouvrir modal login ici");
+}
   });
 
   profileTab.addEventListener('click', (e)=>{
     e.preventDefault();
     profilSection.scrollIntoView({behavior:'smooth'});
   });
-})();
+}());
 </script>
 <!-- SCRIPT -->
 <script>
