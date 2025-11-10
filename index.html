@@ -906,18 +906,22 @@ function acceptRdv(index){
   }
   // Add an entry to the maintenance log for the client when the patron accepts the RDV
   try{
+    // build invoice HTML and attach it to the maintenance entry
+    let invoiceHtml = null;
+    try{ invoiceHtml = buildInvoiceHtml(newNext); }catch(e){ console.warn('Erreur génération HTML facture:', e); }
     const histEntry = {
       date: new Date().toISOString(),
       service: item.service || 'RDV',
       notes: 'RDV accepté pour le ' + (new Date(item.slot)).toLocaleString(),
-      photos: []
+      photos: [],
+      invoiceHtml: invoiceHtml
     };
     try{ addToHistory(item.client, histEntry); }catch(e){ console.warn('Erreur ajout carnet:', e); }
     try{ renderMaintenanceLog(); }catch(e){}
-  }catch(e){ console.warn('Erreur lors de l 27enregistrement au carnet', e); }
+  }catch(e){ console.warn('Erreur lors de l\'enregistrement au carnet', e); }
   showToast('RDV accepté — indiqué dans le profil');
   renderPendingRdv();
-  // open invoice/summary for the accepted RDV
+  // open invoice/summary for the accepted RDV (unchanged behaviour)
   try{ generateInvoice(newNext); }catch(e){}
   // calendar regenerated not needed; using native input
 }
@@ -1124,15 +1128,28 @@ function refreshOptionLabels(){
 // --- Invoice / recap generation ---
 function generateInvoice(rdv){
   try{
+    const html = buildInvoiceHtml(rdv);
+    openInvoiceHtml(html);
+    return html;
+  }catch(e){ console.error(e); }
+}
+
+function buildInvoiceHtml(rdv){
+  const d = new Date(rdv.slot);
+  const lines = (rdv.options||[]).map(o=>`<tr><td>${o.label}</td><td style="text-align:right">${(o.price||0).toFixed(2)} €</td></tr>`).join('');
+  const baseLabel = rdv.service || 'Service';
+  const basePrice = Number(rdv.totalPrice || 0) - (rdv.options||[]).reduce((s,o)=>s+(o.price||0),0);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Facture RDV</title><style>body{font-family:Arial,sans-serif;padding:20px}table{width:100%;border-collapse:collapse}td{padding:6px;border-bottom:1px solid #eee}</style></head><body><h2>Facture - RDV</h2><div><strong>Client:</strong> ${rdv.client}</div><div><strong>Véhicule:</strong> ${rdv.vehicle}</div><div><strong>Date:</strong> ${d.toLocaleString()}</div><table><tr><td>${baseLabel}</td><td style="text-align:right">${basePrice.toFixed(2)} €</td></tr>${lines}<tr><td style="font-weight:700">Total</td><td style="text-align:right;font-weight:700">${Number(rdv.totalPrice||0).toFixed(2)} €</td></tr></table></body></html>`;
+  return html;
+}
+
+function openInvoiceHtml(html){
+  try{
     const win = window.open('', '_blank');
     if(!win) return;
-    const d = new Date(rdv.slot);
-    const lines = (rdv.options||[]).map(o=>`<tr><td>${o.label}</td><td style="text-align:right">${(o.price||0).toFixed(2)} €</td></tr>`).join('');
-    const baseLabel = rdv.service || 'Service';
-    const basePrice = Number(rdv.totalPrice || 0) - (rdv.options||[]).reduce((s,o)=>s+(o.price||0),0);
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Facture RDV</title><style>body{font-family:Arial,sans-serif;padding:20px}table{width:100%;border-collapse:collapse}td{padding:6px;border-bottom:1px solid #eee}</style></head><body><h2>Facture - RDV</h2><div><strong>Client:</strong> ${rdv.client}</div><div><strong>Véhicule:</strong> ${rdv.vehicle}</div><div><strong>Date:</strong> ${d.toLocaleString()}</div><table><tr><td>${baseLabel}</td><td style="text-align:right">${basePrice.toFixed(2)} €</td></tr>${lines}<tr><td style="font-weight:700">Total</td><td style="text-align:right;font-weight:700">${Number(rdv.totalPrice||0).toFixed(2)} €</td></tr></table></body></html>`;
-    win.document.write(html); win.document.close();
-  }catch(e){ console.error(e); }
+    win.document.write(html);
+    win.document.close();
+  }catch(e){ console.error('openInvoiceHtml error', e); }
 }
 /* Maintenance log (carnet d'entretien) helpers */
 function getMaintenanceStore(){
@@ -1188,6 +1205,17 @@ function renderMaintenanceLog(){
     wrapper.style.borderRadius = '8px';
     const photosHtml = (e.photos && e.photos.length) ? '<div style="display:flex;gap:8px;margin-top:8px;">' + e.photos.map(p => `<img src="${p}" style="width:84px;height:56px;object-fit:cover;border-radius:6px;">`).join('') + '</div>' : '';
     wrapper.innerHTML = `<div style="font-weight:700">${e.service || ''} • ${d.toLocaleString()}</div><div style="font-size:13px;color:#444">${(e.notes||'')}</div>${photosHtml}`;
+    // if an invoice HTML was saved with this entry, add a button to open it
+    if(e.invoiceHtml){
+      const btnContainer = document.createElement('div');
+      btnContainer.style.marginTop = '8px';
+      const btn = document.createElement('button');
+      btn.textContent = 'Voir facture';
+      btn.style.padding = '8px'; btn.style.borderRadius = '8px'; btn.style.border = 'none'; btn.style.background = '#1e90ff'; btn.style.color = '#fff'; btn.style.cursor = 'pointer';
+      btn.onclick = function(){ openInvoiceHtml(e.invoiceHtml); };
+      btnContainer.appendChild(btn);
+      wrapper.appendChild(btnContainer);
+    }
     listEl.appendChild(wrapper);
   });
 }
