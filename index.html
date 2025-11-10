@@ -276,6 +276,10 @@ h1,h2 { margin-bottom:15px; text-align:center; }
     <h3 style="margin:0 0 8px 0;">Carnet d'entretien</h3>
     <div id="maintenance-log-list"></div>
   </div>
+    <div id="payment-history" style="margin-top:12px;border-top:1px solid #e6eef9;padding-top:12px;">
+      <h3 style="margin:0 0 8px 0;">Historique des paiements</h3>
+      <div id="payments-list"></div>
+    </div>
 </section>
 
   <!-- SERVICES -->
@@ -528,7 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderCart();
   renderSubscriptions();
 });
-function addToCart(buttonOrName, productName, priceParam, typeParam){
+function addToCart(buttonOrName, productName, priceParam, typeParam, meta){
   // Support calling addToCart(this, 'Name') or addToCart('Name') for backwards compatibility
   let btn = null;
   let name = productName;
@@ -548,7 +552,7 @@ function addToCart(buttonOrName, productName, priceParam, typeParam){
   // update cart data structure and persist
   const existing = cart.find(i=>i.name === nameKey && i.type === type);
   if (existing) existing.qty = (existing.qty||1)+1;
-  else cart.push({ name: nameKey, qty: 1, price: price, type: type });
+  else cart.push({ name: nameKey, qty: 1, price: price, type: type, meta: meta || {} });
   try { localStorage.setItem('bhw_cart', JSON.stringify(cart)); } catch(e){ console.warn('LocalStorage error', e); }
   cartCount = cart.reduce((s,i)=>s + (i.qty||1), 0);
   document.getElementById('cart-count').textContent = cartCount;
@@ -639,12 +643,25 @@ function checkout(){
     subsToAdd.forEach(s => subscriptions.push({ name: s.name, price: s.price || 0, date: new Date().toISOString() }));
     try{ localStorage.setItem('bhw_subscriptions', JSON.stringify(subscriptions)); } catch(e){}
   }
+  // Process RDV payments: if cart items reference a confirmed rdv via meta.rdvId, mark as paid and record payment
+  const payments = JSON.parse(localStorage.getItem('bhw_payments')||'[]');
+  cart.forEach(ci => {
+    if(ci.type === 'rdv' && ci.meta && ci.meta.rdvId){
+      try{ markRdvPaid(ci.meta.rdvId, { amount: Number(ci.price||0), method: 'CB', by: (getCurrentUser()||{}).name || 'Client' }); }catch(e){ console.warn('Erreur marquer paiement RDV', e); }
+      // also add an entry to payments list for history
+      payments.push({ id: 'pay-' + Date.now() + '-' + Math.random().toString(36).slice(2,7), rdvId: ci.meta.rdvId, amount: Number(ci.price||0), method: 'CB', paidAt: new Date().toISOString(), by: (getCurrentUser()||{}).name || 'Client' });
+    }
+  });
+  try{ localStorage.setItem('bhw_payments', JSON.stringify(payments)); }catch(e){}
+
   // In a real flow you'd create an order and charge the user here
   cart = [];
   try{ localStorage.setItem('bhw_cart', JSON.stringify(cart)); } catch(e){}
   cartCount = 0; document.getElementById('cart-count').textContent = cartCount;
   renderCart();
   renderSubscriptions();
+  try{ renderConfirmedRdvs(); }catch(e){}
+  try{ renderPaymentHistory(); }catch(e){}
   showToast('Merci pour votre achat ! (simulé)');
 }
 
@@ -903,7 +920,9 @@ function renderConfirmedRdvs(){
   confirmed.slice().reverse().forEach((c)=>{
     const d = new Date(c.slot);
     const div = document.createElement('div'); div.style.border='1px solid #e6f6ff'; div.style.padding='8px'; div.style.marginBottom='8px'; div.style.borderRadius='8px';
-    div.innerHTML = `<div style="font-weight:700">${c.client} — ${c.vehicle}</div><div style="color:#444;font-size:13px">${d.toLocaleString()} • ${c.service}</div><div style="margin-top:8px"><button onclick='openConfirmedInvoice("${c.id}")' style="background:#1e90ff;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer">Voir facture</button> <button onclick='addConfirmedToCart("${c.id}")' style="background:#06314d;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer;margin-left:8px">Ajouter au panier</button></div>`;
+    const paidBadge = c.paid ? '<span style="background:#e6ffef;color:#087a3d;padding:4px 8px;border-radius:999px;margin-left:8px;font-weight:700;font-size:12px">Payé</span>' : '';
+    const markPaidBtn = (!c.paid && isOwner()) ? `<button onclick='markRdvPaid("${c.id}")' style="background:#087a3d;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer;margin-left:8px">Marquer payé</button>` : '';
+    div.innerHTML = `<div style="font-weight:700">${c.client} — ${c.vehicle} ${paidBadge}</div><div style="color:#444;font-size:13px">${d.toLocaleString()} • ${c.service}</div><div style="margin-top:8px"><button onclick='openConfirmedInvoice("${c.id}")' style="background:#1e90ff;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer">Voir facture</button> <button onclick='addConfirmedToCart("${c.id}")' style="background:#06314d;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer;margin-left:8px">Ajouter au panier</button> ${markPaidBtn}</div>`;
     list.appendChild(div);
   });
 }
@@ -913,7 +932,8 @@ function addConfirmedToCart(id){
   const item = confirmed.find(c=>c.id === id);
   if(!item){ showToast('RDV confirmé introuvable'); return; }
   const name = `RDV confirmé: ${item.service} — ${item.client}`;
-  addToCart(null, name, Number(item.totalPrice||0), 'rdv');
+  // attach the rdv id so we can mark it as paid at checkout or generate receipt
+  addToCart(null, name, Number(item.totalPrice||0), 'rdv', { rdvId: item.id });
   showToast('RDV confirmé ajouté au panier');
 }
 
@@ -929,6 +949,56 @@ function openConfirmedInvoice(id){
   if(match && match.invoiceHtml){ openInvoiceHtml(match.invoiceHtml); return; }
   // fallback: generate invoice now
   openInvoiceHtml(buildInvoiceHtml(item));
+}
+
+// --- Payments storage and helpers ---
+function getPayments(){ return JSON.parse(localStorage.getItem('bhw_payments')||'[]'); }
+function savePayments(p){ try{ localStorage.setItem('bhw_payments', JSON.stringify(p)); }catch(e){} }
+
+function markRdvPaid(rdvId, opts){
+  // opts: { amount, method, by }
+  const confirmed = JSON.parse(localStorage.getItem('bhw_confirmed_rdvs')||'[]');
+  const r = confirmed.find(x=>x.id === rdvId);
+  if(!r) return false;
+  r.paid = true;
+  r.paidAt = new Date().toISOString();
+  try{ localStorage.setItem('bhw_confirmed_rdvs', JSON.stringify(confirmed)); }catch(e){}
+
+  // Create payment record
+  const payments = getPayments();
+  const payment = { id: 'pay-' + Date.now() + '-' + Math.random().toString(36).slice(2,7), rdvId: rdvId, client: r.client, amount: Number((opts && opts.amount) || r.totalPrice || 0), method: (opts && opts.method) || 'CB', by: (opts && opts.by) || (getCurrentUser()||{}).name || 'Client', paidAt: new Date().toISOString() };
+  payments.push(payment);
+  savePayments(payments);
+  try{ renderConfirmedRdvs(); }catch(e){}
+  try{ renderPaymentHistory(); }catch(e){}
+  return true;
+}
+
+function renderPaymentHistory(){
+  const listEl = document.getElementById('payments-list'); if(!listEl) return;
+  const cu = getCurrentUser();
+  const profileNameInput = (document.querySelector('#profil input[placeholder="Nom du client"]') || {});
+  const profileNameVal = profileNameInput && profileNameInput.value && profileNameInput.value.trim() ? profileNameInput.value.trim() : null;
+  const client = profileNameVal || (cu && cu.name ? cu.name : null);
+  const payments = getPayments().slice().reverse();
+  // Filter: if a client context is available, show only that client's payments; owners see all
+  const visible = isOwner() ? payments : (client ? payments.filter(p=>p.client === client) : payments.filter(p=>p.by === (cu && cu.name))) ;
+  if(!visible || visible.length === 0){ listEl.innerHTML = '<div style="color:#666">Aucun paiement</div>'; return; }
+  listEl.innerHTML = '';
+  visible.forEach(p => {
+    const d = new Date(p.paidAt || p.paidAt);
+    const div = document.createElement('div'); div.style.border='1px solid #f1f7f4'; div.style.padding='8px'; div.style.marginBottom='8px'; div.style.borderRadius='8px';
+    div.innerHTML = `<div style="font-weight:700">${p.client || p.by} — ${p.amount.toFixed(2)} €</div><div style="font-size:13px;color:#444">${d.toLocaleString()} • ${p.method}</div><div style="margin-top:8px"><button onclick='downloadPaymentReceipt("${p.id}")' style="background:#1e90ff;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer">Télécharger reçu</button></div>`;
+    listEl.appendChild(div);
+  });
+}
+
+function downloadPaymentReceipt(paymentId){
+  const payments = getPayments();
+  const p = payments.find(x=>x.id === paymentId);
+  if(!p){ showToast('Paiement introuvable'); return; }
+  const html = `<!doctype html><html><head><meta charset=\"utf-8\"><title>Reçu paiement</title><style>body{font-family:Arial;padding:20px}</style></head><body><h2>Reçu de paiement</h2><div><strong>Client:</strong> ${p.client || p.by}</div><div><strong>Montant:</strong> ${p.amount.toFixed(2)} €</div><div><strong>Méthode:</strong> ${p.method}</div><div><strong>Date:</strong> ${new Date(p.paidAt).toLocaleString()}</div><div><strong>Référence:</strong> ${p.id}</div></body></html>`;
+  downloadInvoiceHtml(html, `recu-${p.id}.html`);
 }
 
 function acceptRdv(index){
@@ -1112,7 +1182,8 @@ function updateAuthUI(){
       try{ profilSection.querySelector('input[placeholder="Modèle du véhicule"]').value = cu.vehicle || ''; }catch(e){}
       try{ profilSection.querySelector('input[placeholder="Adresse"]').value = cu.address || ''; }catch(e){}
       try{ renderMaintenanceLog(); }catch(e){}
-      try{ loadNextRdvToProfile(); }catch(e){}
+        try{ loadNextRdvToProfile(); }catch(e){}
+        try{ renderPaymentHistory(); }catch(e){}
     }
   }catch(e){}
 }
