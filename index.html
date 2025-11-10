@@ -184,20 +184,21 @@ h1,h2 { margin-bottom:15px; text-align:center; }
     if (!authBtnBottom || !profileTabBottom || !profilSection) return;
 
     function updateUI() {
-      const user = localStorage.getItem('loggedUser');
+      const user = JSON.parse(localStorage.getItem('bhw_current_user') || 'null');
       const label = authBtnBottom.querySelector('.label');
 
       if(user){
-        if(label) label.textContent = user;
+        if(label) label.textContent = user.name || user;
         profileTabBottom.style.display = 'flex';
         profilSection.style.display = 'block';
-        profilSection.querySelector('input[placeholder="Nom du client"]').value = user;
-        profilSection.querySelector('input[placeholder="Modèle du véhicule"]').value = '';
-        profilSection.querySelector('input[placeholder="Adresse"]').value = '';
+        try{ profilSection.querySelector('input[placeholder="Nom du client"]').value = user.name || ''; }catch(e){}
+        try{ profilSection.querySelector('input[placeholder="Modèle du véhicule"]').value = user.vehicle || ''; }catch(e){}
+        try{ profilSection.querySelector('input[placeholder="Adresse"]').value = user.address || ''; }catch(e){}
       } else {
         if(label) label.textContent = 'Se connecter';
-        profileTabBottom.style.display = 'none';
-        profilSection.style.display = 'none';
+        profileTabBottom.style.display = 'flex';
+        // keep profile section visible but empty when not logged
+        try{ profilSection.querySelector('input[placeholder="Nom du client"]').value = ''; }catch(e){}
       }
     }
 
@@ -205,9 +206,9 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 
     authBtnBottom.addEventListener('click', function(e){
       e.preventDefault();
-      const user = localStorage.getItem('loggedUser');
+      const user = JSON.parse(localStorage.getItem('bhw_current_user') || 'null');
       if(user){
-        localStorage.removeItem('loggedUser');
+        localStorage.removeItem('bhw_current_user');
         updateUI();
       } else {
         openAuthModal();
@@ -228,6 +229,7 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   <div class="cart-summary" onclick="showCart()" role="button" aria-label="Ouvrir le panier">
     Panier: <span id="cart-count">0</span>
   </div>
+  <div id="auth-btn" class="cart-summary" onclick="openAuthModal()" role="button" aria-label="Se connecter" style="right:110px;">Se connecter</div>
 </header>
 
 <main>
@@ -239,7 +241,7 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   </section>
 
 <!-- PROFIL -->
-<section id="profil" style="display:none;">
+<section id="profil">
   <h2>Profil Client</h2>
   <div class="profile-grid">
     <!-- informations du client -->
@@ -389,8 +391,8 @@ h1,h2 { margin-bottom:15px; text-align:center; }
     <span class="label">RDV</span>
   </a>
 
-<!-- Profil (caché par défaut) -->
-<a href="#" class="nav-item" id="profile-tab-bottom" data-target="profil" style="display:none;" onclick="showSection('profil');return false;">
+<!-- Profil -->
+<a href="#" class="nav-item" id="profile-tab-bottom" data-target="profil" onclick="showSection('profil');return false;">
   <img src="image/Profil.jpg" alt="Profil">
   <span class="label">Profil</span>
 </a>
@@ -975,12 +977,17 @@ function isOwner(){ const cu = getCurrentUser(); return cu && cu.role === 'patro
 function updateAuthUI(){
   const cu = getCurrentUser();
   const authBtn = document.getElementById('auth-btn-bottom');
+  const authBtnTop = document.getElementById('auth-btn');
   const adminCheckbox = document.getElementById('admin-mode');
   const logoutBtn = document.getElementById('auth-logout');
   const manageTariffsBtn = document.getElementById('auth-manage-tariffs');
   if(authBtn){
     if(cu){ authBtn.textContent = cu.name + ' ▾'; }
     else { authBtn.textContent = 'Se connecter'; }
+  }
+  if(authBtnTop){
+    if(cu){ authBtnTop.textContent = cu.name + ' ▾'; }
+    else { authBtnTop.textContent = 'Se connecter'; }
   }
   if(adminCheckbox){
     // show the admin-mode control only if current user is owner
