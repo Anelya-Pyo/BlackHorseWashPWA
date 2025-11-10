@@ -194,11 +194,11 @@ h1,h2 { margin-bottom:15px; text-align:center; }
         try{ profilSection.querySelector('input[placeholder="Nom du client"]').value = user.name || ''; }catch(e){}
         try{ profilSection.querySelector('input[placeholder="Modèle du véhicule"]').value = user.vehicle || ''; }catch(e){}
         try{ profilSection.querySelector('input[placeholder="Adresse"]').value = user.address || ''; }catch(e){}
+        try{ renderMaintenanceLog(); }catch(e){}
       } else {
         if(label) label.textContent = 'Se connecter';
-        profileTabBottom.style.display = 'flex';
-        // keep profile section visible but empty when not logged
-        try{ profilSection.querySelector('input[placeholder="Nom du client"]').value = ''; }catch(e){}
+        profileTabBottom.style.display = 'none';
+        profilSection.style.display = 'none';
       }
     }
 
@@ -241,7 +241,7 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   </section>
 
 <!-- PROFIL -->
-<section id="profil">
+<section id="profil" style="display:none;">
   <h2>Profil Client</h2>
   <div class="profile-grid">
     <!-- informations du client -->
@@ -268,6 +268,16 @@ h1,h2 { margin-bottom:15px; text-align:center; }
         </div>
       </div>
     </div>
+  </div>
+  <div id="maintenance-log" style="margin-top:12px;border-top:1px solid #e6eef9;padding-top:12px;">
+    <h3 style="margin:0 0 8px 0;">Carnet d'entretien</h3>
+    <div style="margin-bottom:8px;">
+      <label style="font-size:13px;">Ajouter une note / photos</label>
+      <textarea id="maint-note" placeholder="Notes..." style="width:100%;height:80px;margin-top:6px;padding:8px;border:1px solid #ddd;border-radius:6px;"></textarea>
+      <input type="file" id="maint-photos" accept="image/*" multiple style="margin-top:8px;" />
+      <div style="margin-top:8px;"><button onclick="addMaintenanceEntryFromForm()">Ajouter</button></div>
+    </div>
+    <div id="maintenance-log-list"></div>
   </div>
 </section>
 
@@ -356,6 +366,7 @@ h1,h2 { margin-bottom:15px; text-align:center; }
       <div class="abonnement-item"><img src="image/abonnement-medium.jpg" alt="Medium"><p>Medium - 20€</p><button data-price="20" onclick="addSubscription(this,'Medium',20)">Ajouter au panier (abonnement)</button></div>
       <div class="abonnement-item"><img src="image/abonnement-premium.jpg" alt="Premium"><p>Premium - 30€</p><button data-price="30" onclick="addSubscription(this,'Premium',30)">Ajouter au panier (abonnement)</button></div>
     </div>
+    <!-- maintenance log moved to Profil section -->
   </section>
 
 <nav class="bottom-nav" role="navigation" aria-label="Navigation principale">
@@ -392,8 +403,10 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   </a>
 
 <!-- Profil -->
-<a href="#" class="nav-item" id="profile-tab-bottom" data-target="profil" onclick="showSection('profil');return false;">
-  <img src="image/Profil.jpg" alt="Profil">
+<a href="#" class="nav-item" id="profile-tab-bottom" data-target="profil" style="display:none;" onclick="showSection('profil');return false;" aria-label="Profil">
+  <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/>
+  </svg>
   <span class="label">Profil</span>
 </a>
 
@@ -1101,6 +1114,63 @@ function generateInvoice(rdv){
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Facture RDV</title><style>body{font-family:Arial,sans-serif;padding:20px}table{width:100%;border-collapse:collapse}td{padding:6px;border-bottom:1px solid #eee}</style></head><body><h2>Facture - RDV</h2><div><strong>Client:</strong> ${rdv.client}</div><div><strong>Véhicule:</strong> ${rdv.vehicle}</div><div><strong>Date:</strong> ${d.toLocaleString()}</div><table><tr><td>${baseLabel}</td><td style="text-align:right">${basePrice.toFixed(2)} €</td></tr>${lines}<tr><td style="font-weight:700">Total</td><td style="text-align:right;font-weight:700">${Number(rdv.totalPrice||0).toFixed(2)} €</td></tr></table></body></html>`;
     win.document.write(html); win.document.close();
   }catch(e){ console.error(e); }
+}
+/* Maintenance log (carnet d'entretien) helpers */
+function getMaintenanceStore(){
+  return JSON.parse(localStorage.getItem('bhw_maintenance') || '{}');
+}
+function saveMaintenanceStore(store){
+  localStorage.setItem('bhw_maintenance', JSON.stringify(store));
+}
+function addToHistory(client, entry){
+  const store = getMaintenanceStore();
+  if(!store[client]) store[client] = [];
+  store[client].push(entry);
+  saveMaintenanceStore(store);
+}
+function readFilesAsDataURLs(files){
+  return Promise.all(Array.from(files || []).map(f => new Promise((res) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = () => res(null);
+    r.readAsDataURL(f);
+  })));
+}
+function addMaintenanceEntryFromForm(){
+  const note = document.getElementById('maint-note').value || '';
+  const files = document.getElementById('maint-photos').files;
+  const cu = getCurrentUser();
+  const client = cu && cu.name ? cu.name : (document.querySelector('#profil input[placeholder="Nom du client"]') || {}).value;
+  if(!client || client.trim() === ''){ showToast('Connectez-vous pour ajouter au carnet'); return; }
+  readFilesAsDataURLs(files).then(urls => {
+    const entry = { date: new Date().toISOString(), service: '', notes: note, photos: urls.filter(Boolean) };
+    addToHistory(client, entry);
+    document.getElementById('maint-note').value = '';
+    document.getElementById('maint-photos').value = '';
+    renderMaintenanceLog();
+    showToast('Entrée ajoutée au carnet');
+  });
+}
+function renderMaintenanceLog(){
+  const listEl = document.getElementById('maintenance-log-list');
+  if(!listEl) return;
+  const cu = getCurrentUser();
+  const client = cu && cu.name ? cu.name : (document.querySelector('#profil input[placeholder="Nom du client"]') || {}).value;
+  const store = getMaintenanceStore();
+  const items = (client && store[client]) ? store[client].slice().reverse() : [];
+  if(!items || items.length === 0){ listEl.innerHTML = '<div style="color:#666">Aucun historique</div>'; return; }
+  listEl.innerHTML = '';
+  items.forEach(e => {
+    const d = new Date(e.date);
+    const wrapper = document.createElement('div');
+    wrapper.style.border = '1px solid #e6eef9';
+    wrapper.style.padding = '8px';
+    wrapper.style.marginBottom = '8px';
+    wrapper.style.borderRadius = '8px';
+    const photosHtml = (e.photos && e.photos.length) ? '<div style="display:flex;gap:8px;margin-top:8px;">' + e.photos.map(p => `<img src="${p}" style="width:84px;height:56px;object-fit:cover;border-radius:6px;">`).join('') + '</div>' : '';
+    wrapper.innerHTML = `<div style="font-weight:700">${e.service || ''} • ${d.toLocaleString()}</div><div style="font-size:13px;color:#444">${(e.notes||'')}</div>${photosHtml}`;
+    listEl.appendChild(wrapper);
+  });
 }
 
 // ensure slots & next RDV loaded on DOM ready
