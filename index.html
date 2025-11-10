@@ -329,6 +329,10 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   <hr>
   <label style="display:none;"><input type="checkbox" id="admin-mode" onchange="toggleAdminMode(this.checked)"> Mode patron (afficher demandes en attente)</label>
     <div id="pending-rdvs" style="margin-top:12px; display:none;"></div>
+      <div id="confirmed-rdvs" style="margin-top:12px; display:none;">
+        <h3>Planning confirmé</h3>
+        <div id="confirmed-list">Aucun RDV confirmé</div>
+      </div>
     <div id="my-pending-container" style="margin-top:12px;">
       <h3>Mes demandes en attente</h3>
       <div id="my-pending-rdvs">Vous n'avez pas encore de demande.</div>
@@ -847,7 +851,8 @@ function renderMyPendingRdv(){
     div.style.border='1px dashed #cfe8ff'; div.style.padding='8px'; div.style.marginBottom='8px'; div.style.borderRadius='8px';
     const opts = (p.options && p.options.length) ? `<div style="color:#444;font-size:13px">Options: ${p.options.map(o=>o.label+(o.price?(' (+'+o.price+'€)'):'')).join(', ')}</div>` : '';
     const priceLine = (p.totalPrice !== undefined) ? `<div style="color:#06314d;font-weight:700;margin-top:6px">Prix estimé: ${p.totalPrice.toFixed(2)} €</div>` : '';
-  div.innerHTML = `<div style="font-weight:700">${p.client} — ${p.vehicle}</div><div style="color:#444;font-size:13px">${d.toLocaleString()} • ${p.service}</div>${opts}${priceLine}<div style="margin-top:8px;display:flex;gap:8px"><button onclick="cancelPending('${p.created}')" style="background:transparent;border:1px solid #d00;color:#d00;padding:6px 10px;border-radius:6px;cursor:pointer">Annuler la demande</button><button onclick="addRdvPendingToCart('${p.created}')" style="background:#1e90ff;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer">Ajouter au panier</button></div>`;
+  // Clients can only cancel their pending requests; adding to cart only allowed after patron acceptance
+  div.innerHTML = `<div style="font-weight:700">${p.client} — ${p.vehicle}</div><div style="color:#444;font-size:13px">${d.toLocaleString()} • ${p.service}</div>${opts}${priceLine}<div style="margin-top:8px;display:flex;gap:8px"><button onclick="cancelPending('${p.created}')" style="background:transparent;border:1px solid #d00;color:#d00;padding:6px 10px;border-radius:6px;cursor:pointer">Annuler la demande</button></div>`;
     container.appendChild(div);
   });
 }
@@ -883,6 +888,47 @@ function renderPendingRdv(){
       <div style="margin-top:8px;display:flex;gap:8px"><button onclick="acceptRdv(${idx})" style="margin-right:8px;background:#1e90ff;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer">Accepter</button><button onclick="rejectRdv(${idx})" style="background:transparent;border:1px solid #d00;color:#d00;padding:6px 10px;border-radius:6px;cursor:pointer">Refuser</button><button onclick="addRdvPendingToCartByIndex(${idx})" style="background:#0b61a6;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer">Ajouter au panier</button></div>`;
     container.appendChild(div);
   });
+  // Also refresh confirmed/planning view for owners
+  try{ renderConfirmedRdvs(); }catch(e){}
+}
+
+function renderConfirmedRdvs(){
+  const container = document.getElementById('confirmed-rdvs');
+  const list = document.getElementById('confirmed-list');
+  if(!container || !list) return;
+  const confirmed = JSON.parse(localStorage.getItem('bhw_confirmed_rdvs')||'[]');
+  if(!confirmed || confirmed.length === 0){ list.innerHTML = 'Aucun RDV confirmé'; container.style.display = 'none'; return; }
+  container.style.display = 'block';
+  list.innerHTML = '';
+  confirmed.slice().reverse().forEach((c)=>{
+    const d = new Date(c.slot);
+    const div = document.createElement('div'); div.style.border='1px solid #e6f6ff'; div.style.padding='8px'; div.style.marginBottom='8px'; div.style.borderRadius='8px';
+    div.innerHTML = `<div style="font-weight:700">${c.client} — ${c.vehicle}</div><div style="color:#444;font-size:13px">${d.toLocaleString()} • ${c.service}</div><div style="margin-top:8px"><button onclick='openConfirmedInvoice("${c.id}")' style="background:#1e90ff;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer">Voir facture</button> <button onclick='addConfirmedToCart("${c.id}")' style="background:#06314d;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer;margin-left:8px">Ajouter au panier</button></div>`;
+    list.appendChild(div);
+  });
+}
+
+function addConfirmedToCart(id){
+  const confirmed = JSON.parse(localStorage.getItem('bhw_confirmed_rdvs')||'[]');
+  const item = confirmed.find(c=>c.id === id);
+  if(!item){ showToast('RDV confirmé introuvable'); return; }
+  const name = `RDV confirmé: ${item.service} — ${item.client}`;
+  addToCart(null, name, Number(item.totalPrice||0), 'rdv');
+  showToast('RDV confirmé ajouté au panier');
+}
+
+function openConfirmedInvoice(id){
+  const confirmed = JSON.parse(localStorage.getItem('bhw_confirmed_rdvs')||'[]');
+  const item = confirmed.find(c=>c.id === id);
+  if(!item){ showToast('Facture introuvable'); return; }
+  // try to find invoiceHtml stored in maintenance history for that slot/client
+  const store = getMaintenanceStore();
+  const client = item.client;
+  const entries = (store[client]||[]).slice().reverse();
+  const match = entries.find(e=> e.invoiceHtml && e.date && new Date(e.date).toISOString().slice(0,10) === new Date(item.acceptedAt || item.slot).toISOString().slice(0,10) );
+  if(match && match.invoiceHtml){ openInvoiceHtml(match.invoiceHtml); return; }
+  // fallback: generate invoice now
+  openInvoiceHtml(buildInvoiceHtml(item));
 }
 
 function acceptRdv(index){
@@ -894,9 +940,18 @@ function acceptRdv(index){
   if(existingNext && existingNext.slot === item.slot){ showToast('Ce créneau est déjà confirmé'); return; }
   // remove item from pending and keep it as accepted
   pending.splice(index,1);
-  // save confirmed appointment as next RDV
-  const newNext = { client: item.client, vehicle: item.vehicle, service: item.service, options: item.options || [], slot: item.slot, payment: item.payment, totalPrice: item.totalPrice || 0, acceptedAt: new Date().toISOString() };
-  try{ localStorage.setItem('bhw_next_rdv', JSON.stringify(newNext)); } catch(e){}
+  // save confirmed appointment into confirmed list and as next RDV
+  const newNext = { id: 'rdv-' + Date.now(), client: item.client, vehicle: item.vehicle, service: item.service, options: item.options || [], slot: item.slot, payment: item.payment, totalPrice: item.totalPrice || 0, acceptedAt: new Date().toISOString() };
+  try{
+    // persist as next RDV for quick access
+    localStorage.setItem('bhw_next_rdv', JSON.stringify(newNext));
+  } catch(e){}
+  // add to confirmed list (planning) so patron can view schedule/history
+  try{
+    const confirmed = JSON.parse(localStorage.getItem('bhw_confirmed_rdvs')||'[]');
+    confirmed.push(newNext);
+    localStorage.setItem('bhw_confirmed_rdvs', JSON.stringify(confirmed));
+  }catch(e){}
   // also save per-client mapping so the client's profile (by name) can display their next RDV
   try{
     const byClient = JSON.parse(localStorage.getItem('bhw_next_rdv_by_client')||'{}');
@@ -1045,6 +1100,7 @@ function updateAuthUI(){
   if(logoutBtn){ logoutBtn.style.display = cu ? 'inline-block' : 'none'; }
   // Show avance uploader only to owner/staff
   try{ const avanceUploader = document.getElementById('avance-uploader'); if(avanceUploader) avanceUploader.style.display = isOwner() ? 'block' : 'none'; }catch(e){}
+  try{ if(isOwner()) renderConfirmedRdvs(); }catch(e){}
   try{ renderMyPendingRdv(); }catch(e){}
   // Ensure profile tab and profile fields are updated for the current user
   try{
@@ -1097,9 +1153,15 @@ function logoutUser(){ setCurrentUser(null); closeAuthModal(); showToast('Décon
 
 // --- Cart helpers for RDV ---
 function addRdvPendingToCart(created){
+  // Only allow adding pending RDV to cart if owner/staff triggers it (patron),
+  // otherwise require the RDV to be accepted (moved to confirmed list) before payment.
   const pending = JSON.parse(localStorage.getItem('bhw_rdv_pending')||'[]');
   const item = pending.find(p=>p.created === created);
   if(!item){ showToast('RDV introuvable'); return; }
+  if(!isOwner()){
+    showToast('Paiement non autorisé : le RDV doit être accepté par le patron.');
+    return;
+  }
   const name = `RDV: ${item.service} — ${item.client}`;
   const price = Number(item.totalPrice || 0);
   addToCart(null, name, price, 'rdv');
@@ -1271,6 +1333,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   try{ renderMyPendingRdv(); }catch(e){}
   try{ updateAuthUI(); }catch(e){}
   try{ refreshOptionLabels(); }catch(e){}
+  try{ renderConfirmedRdvs(); }catch(e){}
 });
 </script>
 <!-- Removed duplicated auth/profile small scripts (they referenced alternative IDs like auth-btn/authBtn/profile-tab). Kept a single consistent auth implementation earlier that uses `auth-btn-bottom` and `profile-tab-bottom`. -->
