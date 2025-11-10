@@ -1137,14 +1137,19 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }));
   }
 
-  function updateUI() {
+function updateUI() {
+  const authBtn = document.getElementById('authBtn');
+  const profileTab = document.getElementById('profileTab');
+  const profilSection = document.getElementById('profilSection');
+
+  if (!authBtn || !profileTab || !profilSection) return; // sécurité
+
   const userStr = localStorage.getItem('loggedUser'); // null si pas connecté
   if (userStr) {
     authBtn.textContent = userStr; // userStr contient juste le nom
     profileTab.style.display = 'inline-block';
     profilSection.style.display = 'block';
     profilSection.querySelector('input[placeholder="Nom du client"]').value = userStr;
-    // Si tu n’as pas vehicle / address, tu peux laisser vide ou ajouter fallback
     profilSection.querySelector('input[placeholder="Modèle du véhicule"]').value = '';
     profilSection.querySelector('input[placeholder="Adresse"]').value = '';
   } else {
@@ -1154,17 +1159,44 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 }
 
-  document.addEventListener('DOMContentLoaded', updateUI);
+  document.addEventListener('DOMContentLoaded', () => {
+  const authBtn = document.getElementById('authBtn');
+  const profileTab = document.getElementById('profileTab');
+  const profilSection = document.getElementById('profilSection');
 
-  authBtn.addEventListener('click', () => {
-const user = localStorage.getItem('loggedUser'); // null si pas connecté
-if (user) {
-  localStorage.removeItem('loggedUser'); // Déconnexion
+  if (!authBtn || !profileTab || !profilSection) return; // sécurité
+
+  // Fonction pour mettre à jour l'UI
+  function updateUI() {
+    const user = localStorage.getItem('loggedUser'); // null si pas connecté
+    if (user) {
+      authBtn.textContent = user; // user contient juste le nom
+      profileTab.style.display = 'inline-block';
+      profilSection.style.display = 'block';
+      profilSection.querySelector('input[placeholder="Nom du client"]').value = user;
+      profilSection.querySelector('input[placeholder="Modèle du véhicule"]').value = '';
+      profilSection.querySelector('input[placeholder="Adresse"]').value = '';
+    } else {
+      authBtn.textContent = 'Se connecter';
+      profileTab.style.display = 'none';
+      profilSection.style.display = 'none';
+    }
+  }
+
+  // Mettre à jour l'UI au chargement
   updateUI();
-} else {
-  alert("Ouvrir modal login ici");
-}
+
+  // Gestion du clic sur le bouton auth
+  authBtn.addEventListener('click', () => {
+    const user = localStorage.getItem('loggedUser'); // null si pas connecté
+    if (user) {
+      localStorage.removeItem('loggedUser'); // Déconnexion
+      updateUI();
+    } else {
+      alert("Ouvrir modal login ici");
+    }
   });
+});
 
   profileTab.addEventListener('click', (e)=>{
     e.preventDefault();
