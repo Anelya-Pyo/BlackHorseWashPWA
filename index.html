@@ -839,8 +839,8 @@ function submitRdv(){
 
 function toggleAdminMode(on){
   const container = document.getElementById('pending-rdvs');
-  const adminOptions = document.getElementById('admin-options'); // le bloc à afficher/cacher
-  if(!container || !adminOptions) return;
+  const myContainer = document.getElementById('my-pending-container');
+  if(!container) return;
 
   if(!isOwner()){
     const cb = document.getElementById('admin-mode'); 
@@ -849,8 +849,9 @@ function toggleAdminMode(on){
     return;
   }
 
+  // Show the admin pending requests panel and hide the client's simple pending view when admin mode is on
   container.style.display = on ? 'block' : 'none';
-  adminOptions.style.display = on ? 'block' : 'none';
+  if(myContainer) myContainer.style.display = on ? 'none' : 'block';
   if(on) renderPendingRdv();
 }
 
