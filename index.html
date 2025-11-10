@@ -1053,6 +1053,16 @@ function acceptRdv(index){
   }catch(e){ console.warn('Erreur lors de l\'enregistrement au carnet', e); }
   showToast('RDV accepté — indiqué dans le profil');
   renderPendingRdv();
+  // Option 1: ajouter automatiquement le RDV confirmé au panier pour facturation immédiate
+  try{
+    const storedCart = JSON.parse(localStorage.getItem('bhw_cart')||'[]');
+    const already = storedCart.some(ci => ci && ci.meta && ci.meta.rdvId === newNext.id);
+    if(!already){
+      addConfirmedToCart(newNext.id);
+      // ouvrir le panier pour permettre le paiement immédiat
+      showCart();
+    }
+  }catch(e){ console.warn('Auto-add to cart failed', e); }
   // open invoice/summary for the accepted RDV (unchanged behaviour)
   try{ generateInvoice(newNext); }catch(e){}
   // calendar regenerated not needed; using native input
