@@ -186,7 +186,7 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 
     function updateUI() {
       const user = JSON.parse(localStorage.getItem('bhw_current_user') || 'null');
-      const label = authBtnBottom.querySelector('.label');
+      const label = authBtnBottom ? authBtnBottom.querySelector('.label') : null;
 
       if(user){
         if(label) label.textContent = user.name || user;
@@ -205,16 +205,18 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 
     updateUI();
 
-    authBtnBottom.addEventListener('click', function(e){
-      e.preventDefault();
-      const user = JSON.parse(localStorage.getItem('bhw_current_user') || 'null');
-      if(user){
-        localStorage.removeItem('bhw_current_user');
-        updateUI();
-      } else {
-        openAuthModal();
-      }
-    });
+    if(authBtnBottom){
+      authBtnBottom.addEventListener('click', function(e){
+        e.preventDefault();
+        const user = JSON.parse(localStorage.getItem('bhw_current_user') || 'null');
+        if(user){
+          localStorage.removeItem('bhw_current_user');
+          updateUI();
+        } else {
+          openAuthModal();
+        }
+      });
+    }
 
     profileTabBottom.addEventListener('click', function(e){
       e.preventDefault();
