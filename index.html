@@ -1223,7 +1223,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- NAVIGATION (redesign) -->
 <nav class="bottom-nav" role="navigation" aria-label="Navigation principale" style="display:flex;align-items:center;justify-content:space-between;">
 
-  <!-- Se connecter à gauche -->
+   <!-- Se connecter à gauche -->
   <a href="#" id="auth-btn-bottom" class="nav-item" data-target="login" onclick="openAuthModal();return false;" aria-label="Se connecter" style="order:-1;">
     <!-- User SVG pour connexion -->
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
@@ -1231,8 +1231,17 @@ document.addEventListener('DOMContentLoaded', function() {
     </svg>
     <span class="label">Se connecter</span>
   </a>
+
+  <!-- Profil (caché par défaut, affiché après connexion) -->
+  <a href="#" id="profile-tab-bottom" class="nav-item" data-target="profil" style="display:none;" aria-label="Profil">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/>
+    </svg>
+    <span class="label">Profil</span>
+  </a>
 </nav>
-!-- Script qui gère connexion / profil -->
+
+<!-- Script qui gère connexion / profil -->
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     const authBtnBottom = document.getElementById('auth-btn-bottom');
@@ -1241,6 +1250,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateUI() {
       const user = JSON.parse(localStorage.getItem('loggedUser') || 'null');
+      if (!authBtnBottom || !profileTabBottom || !profilSection) {
+        console.warn("Un élément n'a pas été trouvé dans le DOM.");
+        return;
+      }
+
       if (user) {
         authBtnBottom.querySelector('.label').textContent = user.name || 'Déconnexion';
         profileTabBottom.style.display = 'flex';
@@ -1263,6 +1277,11 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         openAuthModal();
       }
+    });
+
+    profileTabBottom.addEventListener('click', (e) => {
+      e.preventDefault();
+      showSection('profil');
     });
   });
 </script>
