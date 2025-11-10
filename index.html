@@ -904,6 +904,17 @@ function acceptRdv(index){
     // set value to slot (ISO format already compatible)
     prof.value = item.slot;
   }
+  // Add an entry to the maintenance log for the client when the patron accepts the RDV
+  try{
+    const histEntry = {
+      date: new Date().toISOString(),
+      service: item.service || 'RDV',
+      notes: 'RDV accepté pour le ' + (new Date(item.slot)).toLocaleString(),
+      photos: []
+    };
+    try{ addToHistory(item.client, histEntry); }catch(e){ console.warn('Erreur ajout carnet:', e); }
+    try{ renderMaintenanceLog(); }catch(e){}
+  }catch(e){ console.warn('Erreur lors de l 27enregistrement au carnet', e); }
   showToast('RDV accepté — indiqué dans le profil');
   renderPendingRdv();
   // open invoice/summary for the accepted RDV
