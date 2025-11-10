@@ -1034,6 +1034,19 @@ function updateAuthUI(){
   // Show avance uploader only to owner/staff
   try{ const avanceUploader = document.getElementById('avance-uploader'); if(avanceUploader) avanceUploader.style.display = isOwner() ? 'block' : 'none'; }catch(e){}
   try{ renderMyPendingRdv(); }catch(e){}
+  // Ensure profile tab and profile fields are updated for the current user
+  try{
+    const profileTabBottom = document.getElementById('profile-tab-bottom');
+    const profilSection = document.getElementById('profil');
+    if(profileTabBottom) profileTabBottom.style.display = cu ? 'flex' : 'none';
+    if(cu && profilSection){
+      try{ profilSection.querySelector('input[placeholder="Nom du client"]').value = cu.name || ''; }catch(e){}
+      try{ profilSection.querySelector('input[placeholder="Modèle du véhicule"]').value = cu.vehicle || ''; }catch(e){}
+      try{ profilSection.querySelector('input[placeholder="Adresse"]').value = cu.address || ''; }catch(e){}
+      try{ renderMaintenanceLog(); }catch(e){}
+      try{ loadNextRdvToProfile(); }catch(e){}
+    }
+  }catch(e){}
 }
 
 function openAuthModal(){ const modal = document.getElementById('auth-modal'); if(!modal) return; modal.style.display = 'block'; showAuthTab('login'); }
