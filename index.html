@@ -487,6 +487,8 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 </div>
 <!-- manage tariffs button (owner only) -->
 <button id="auth-manage-tariffs" onclick="openTariffsModal()" style="display:none; position:fixed; right:18px; top:86px; background:#06314d;color:#fff;padding:8px;border-radius:8px;border:none; z-index:160;">Gérer tarifs</button>
+<!-- Purge test data (owner only) -->
+<button id="auth-purge-data" onclick="purgeTestData()" style="display:none; position:fixed; right:18px; top:136px; background:#d9534f;color:#fff;padding:8px;border-radius:8px;border:none; z-index:160;">Purger données de test</button>
 
 <!-- Tariffs modal (owner only) -->
 <div id="tariffs-modal" style="display:none; position:fixed; left:50%; transform:translateX(-50%); top:12%; width:92%; max-width:520px; background:#fff; border-radius:12px; padding:12px; box-shadow:0 20px 50px rgba(3,34,56,0.22); z-index:160;">
@@ -923,7 +925,8 @@ function renderConfirmedRdvs(){
     const div = document.createElement('div'); div.style.border='1px solid #e6f6ff'; div.style.padding='8px'; div.style.marginBottom='8px'; div.style.borderRadius='8px';
     const paidBadge = c.paid ? '<span style="background:#e6ffef;color:#087a3d;padding:4px 8px;border-radius:999px;margin-left:8px;font-weight:700;font-size:12px">Payé</span>' : '';
     const markPaidBtn = (!c.paid && isOwner()) ? `<button onclick='markRdvPaid("${c.id}")' style="background:#087a3d;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer;margin-left:8px">Marquer payé</button>` : '';
-    div.innerHTML = `<div style="font-weight:700">${c.client} — ${c.vehicle} ${paidBadge}</div><div style="color:#444;font-size:13px">${d.toLocaleString()} • ${c.service}</div><div style="margin-top:8px"><button onclick='openConfirmedInvoice("${c.id}")' style="background:#1e90ff;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer">Voir facture</button> <button onclick='addConfirmedToCart("${c.id}")' style="background:#06314d;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer;margin-left:8px">Ajouter au panier</button> ${markPaidBtn}</div>`;
+    const deleteBtn = isOwner() ? `<button onclick='deleteConfirmedById("${c.id}")' style="background:transparent;border:1px solid #d00;color:#d00;padding:6px 10px;border-radius:6px;cursor:pointer;margin-left:8px">Suppr</button>` : '';
+    div.innerHTML = `<div style="font-weight:700">${c.client} — ${c.vehicle} ${paidBadge}</div><div style="color:#444;font-size:13px">${d.toLocaleString()} • ${c.service}</div><div style="margin-top:8px"><button onclick='openConfirmedInvoice("${c.id}")' style="background:#1e90ff;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer">Voir facture</button> <button onclick='addConfirmedToCart("${c.id}")' style="background:#06314d;color:#fff;padding:6px 10px;border-radius:6px;border:none;cursor:pointer;margin-left:8px">Ajouter au panier</button> ${markPaidBtn} ${deleteBtn}</div>`;
     list.appendChild(div);
   });
 }
@@ -1178,6 +1181,8 @@ function updateAuthUI(){
     else { adminCheckbox.parentElement.style.display = 'none'; adminCheckbox.checked = false; const pendingContainer = document.getElementById('pending-rdvs'); if(pendingContainer) pendingContainer.style.display='none'; }
   }
   if(manageTariffsBtn){ manageTariffsBtn.style.display = isOwner() ? 'inline-block' : 'none'; }
+  const purgeBtn = document.getElementById('auth-purge-data');
+  if(purgeBtn){ purgeBtn.style.display = isOwner() ? 'inline-block' : 'none'; }
   if(logoutBtn){ logoutBtn.style.display = cu ? 'inline-block' : 'none'; }
   // Show avance uploader only to owner/staff
   try{ const avanceUploader = document.getElementById('avance-uploader'); if(avanceUploader) avanceUploader.style.display = isOwner() ? 'block' : 'none'; }catch(e){}
@@ -1252,6 +1257,40 @@ function addRdvPendingToCart(created){
 function addRdvPendingToCartByIndex(idx){
   const pending = JSON.parse(localStorage.getItem('bhw_rdv_pending')||'[]');
   if(idx<0 || idx>=pending.length) return; const item = pending[idx]; addRdvPendingToCart(item.created);
+}
+
+function deleteConfirmedById(id){
+  if(!isOwner()){ showToast('Accès refusé — action réservée au patron'); return; }
+  if(!confirm('Supprimer ce RDV confirmé ? Cette action est irréversible.')) return;
+  let confirmed = JSON.parse(localStorage.getItem('bhw_confirmed_rdvs')||'[]');
+  const idx = confirmed.findIndex(c=>c.id === id);
+  if(idx === -1){ showToast('RDV introuvable'); return; }
+  const removed = confirmed.splice(idx,1)[0];
+  try{ localStorage.setItem('bhw_confirmed_rdvs', JSON.stringify(confirmed)); }catch(e){}
+  // cleanup next mapping if it pointed to this RDV
+  try{
+    const byClient = JSON.parse(localStorage.getItem('bhw_next_rdv_by_client')||'{}');
+    if(removed && removed.client && byClient[removed.client] && byClient[removed.client].id === id){ delete byClient[removed.client]; localStorage.setItem('bhw_next_rdv_by_client', JSON.stringify(byClient)); }
+  }catch(e){}
+  // if this was the global next RDV, remove it
+  try{ const next = JSON.parse(localStorage.getItem('bhw_next_rdv')||'null'); if(next && next.id === id) localStorage.removeItem('bhw_next_rdv'); }catch(e){}
+  showToast('RDV supprimé');
+  try{ renderConfirmedRdvs(); }catch(e){}
+}
+
+function purgeTestData(){
+  if(!isOwner()){ showToast('Accès refusé — action réservée au patron'); return; }
+  const confirmText = prompt('Tapez SUPPRIMER pour purger les données de test (irréversible)');
+  if(confirmText !== 'SUPPRIMER'){ showToast('Purge annulée'); return; }
+  const keys = ['bhw_rdv_pending','bhw_confirmed_rdvs','bhw_next_rdv','bhw_next_rdv_by_client','bhw_maintenance','bhw_payments','bhw_cart'];
+  keys.forEach(k=> localStorage.removeItem(k));
+  showToast('Données de test supprimées');
+  // refresh UI
+  try{ renderPendingRdv(); }catch(e){}
+  try{ renderConfirmedRdvs(); }catch(e){}
+  try{ renderMaintenanceLog(); }catch(e){}
+  try{ renderPaymentHistory(); }catch(e){}
+  try{ renderCart(); }catch(e){}
 }
 
 function addAcceptedRdvToCart(){
