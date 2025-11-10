@@ -177,11 +177,12 @@ h1,h2 { margin-bottom:15px; text-align:center; }
 </style>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    const authBtnBottom = document.getElementById('auth-btn-bottom');
-    const profileTabBottom = document.getElementById('profile-tab-bottom');
-    const profilSection = document.getElementById('profil');
+  const authBtnBottom = document.getElementById('auth-btn-bottom');
+  const profileTabBottom = document.getElementById('profile-tab-bottom');
+  const profilSection = document.getElementById('profil');
 
-    if (!authBtnBottom || !profileTabBottom || !profilSection) return;
+  // authBtnBottom is optional (we may not show a login button in the bottom nav).
+  if (!profileTabBottom || !profilSection) return;
 
     function updateUI() {
       const user = JSON.parse(localStorage.getItem('bhw_current_user') || 'null');
@@ -190,7 +191,6 @@ h1,h2 { margin-bottom:15px; text-align:center; }
       if(user){
         if(label) label.textContent = user.name || user;
         profileTabBottom.style.display = 'flex';
-        profilSection.style.display = 'block';
         try{ profilSection.querySelector('input[placeholder="Nom du client"]').value = user.name || ''; }catch(e){}
         try{ profilSection.querySelector('input[placeholder="Modèle du véhicule"]').value = user.vehicle || ''; }catch(e){}
         try{ profilSection.querySelector('input[placeholder="Adresse"]').value = user.address || ''; }catch(e){}
@@ -198,7 +198,8 @@ h1,h2 { margin-bottom:15px; text-align:center; }
       } else {
         if(label) label.textContent = 'Se connecter';
         profileTabBottom.style.display = 'none';
-        profilSection.style.display = 'none';
+        // if the profile section is currently active/visible, switch back to home
+        if(profilSection.classList.contains('active')) showSection('home');
       }
     }
 
@@ -271,12 +272,6 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   </div>
   <div id="maintenance-log" style="margin-top:12px;border-top:1px solid #e6eef9;padding-top:12px;">
     <h3 style="margin:0 0 8px 0;">Carnet d'entretien</h3>
-    <div style="margin-bottom:8px;">
-      <label style="font-size:13px;">Ajouter une note / photos</label>
-      <textarea id="maint-note" placeholder="Notes..." style="width:100%;height:80px;margin-top:6px;padding:8px;border:1px solid #ddd;border-radius:6px;"></textarea>
-      <input type="file" id="maint-photos" accept="image/*" multiple style="margin-top:8px;" />
-      <div style="margin-top:8px;"><button onclick="addMaintenanceEntryFromForm()">Ajouter</button></div>
-    </div>
     <div id="maintenance-log-list"></div>
   </div>
 </section>
@@ -349,6 +344,14 @@ h1,h2 { margin-bottom:15px; text-align:center; }
       <div><p>Après</p><img src="image/lustrant-voiture.jpg" alt="Après"></div>
     </div>
     <p>Nom du professionnel : Jean Dupont</p>
+    <!-- Uploader pour le personnel / patron: publie photos et note automatiquement dans le carnet d'entretien -->
+    <div id="avance-uploader" style="margin-top:12px; display:none; border-top:1px solid #eef6ff; padding-top:10px;">
+      <h4 style="margin:0 0 8px 0;">Publier au carnet (pro)</h4>
+      <label style="display:block;font-size:13px;">Note (interne)</label>
+      <input id="avance-note" type="text" placeholder="Remarques, état, action réalisée" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ddd;margin-top:6px;" />
+      <input id="avance-photos" type="file" accept="image/*" multiple style="margin-top:8px; display:block;" />
+      <div style="margin-top:8px;"><button onclick="publishAvanceToCarnet()" style="background:#1e90ff;color:#fff;padding:8px;border-radius:8px;border:none;">Publier au carnet</button></div>
+    </div>
   </section>
 
   <!-- MAPS -->
@@ -410,13 +413,7 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   <span class="label">Profil</span>
 </a>
 
-  <!-- Compte (auth) - required by JS to toggle auth/profile UI -->
-  <a href="#" class="nav-item" id="auth-btn-bottom" onclick="(function(e){e.preventDefault(); const user = JSON.parse(localStorage.getItem('bhw_current_user')||'null'); if(user){ setCurrentUser(null); showToast('Déconnecté'); } else { openAuthModal(); } })();return false;" aria-label="Compte">
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-      <path fill="currentColor" d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-5 0-9 2.5-9 5v1h18v-1c0-2.5-4-5-9-5z"/>
-    </svg>
-    <span class="label">Compte</span>
-  </a>
+  <!-- (auth bottom button removed to avoid duplication with top login button) -->
 
   <!-- Promo / Concours -->
   <a href="#" class="nav-item" data-target="promo" onclick="showSection('promo');return false;" aria-label="Promotions / Concours">
@@ -1032,6 +1029,8 @@ function updateAuthUI(){
   }
   if(manageTariffsBtn){ manageTariffsBtn.style.display = isOwner() ? 'inline-block' : 'none'; }
   if(logoutBtn){ logoutBtn.style.display = cu ? 'inline-block' : 'none'; }
+  // Show avance uploader only to owner/staff
+  try{ const avanceUploader = document.getElementById('avance-uploader'); if(avanceUploader) avanceUploader.style.display = isOwner() ? 'block' : 'none'; }catch(e){}
   try{ renderMyPendingRdv(); }catch(e){}
 }
 
@@ -1172,26 +1171,37 @@ function readFilesAsDataURLs(files){
     r.readAsDataURL(f);
   })));
 }
-function addMaintenanceEntryFromForm(){
-  const note = document.getElementById('maint-note').value || '';
-  const files = document.getElementById('maint-photos').files;
-  const cu = getCurrentUser();
-  const client = cu && cu.name ? cu.name : (document.querySelector('#profil input[placeholder="Nom du client"]') || {}).value;
-  if(!client || client.trim() === ''){ showToast('Connectez-vous pour ajouter au carnet'); return; }
+
+function publishAvanceToCarnet(){
+  const note = document.getElementById('avance-note') ? document.getElementById('avance-note').value || '' : '';
+  const files = document.getElementById('avance-photos') ? document.getElementById('avance-photos').files : [];
+  const next = JSON.parse(localStorage.getItem('bhw_next_rdv')||'null');
+  let client = next && next.client ? next.client : null;
+  if(!client){ client = prompt('Nom du client pour le carnet (aucun RDV confirmé trouvé):'); if(!client) { showToast('Client requis'); return; } }
+  // only staff/owner should call this
+  if(!isOwner()){ showToast('Action réservée au personnel'); return; }
   readFilesAsDataURLs(files).then(urls => {
-    const entry = { date: new Date().toISOString(), service: '', notes: note, photos: urls.filter(Boolean) };
+    const entry = { date: new Date().toISOString(), service: (next && next.service) || 'RDV', notes: note, photos: urls.filter(Boolean) };
     addToHistory(client, entry);
-    document.getElementById('maint-note').value = '';
-    document.getElementById('maint-photos').value = '';
     renderMaintenanceLog();
-    showToast('Entrée ajoutée au carnet');
+    showToast('Photos ajoutées au carnet');
+    // clear inputs
+    if(document.getElementById('avance-note')) document.getElementById('avance-note').value = '';
+    if(document.getElementById('avance-photos')) document.getElementById('avance-photos').value = '';
   });
+}
+function addMaintenanceEntryFromForm(){
+  // Deprecated: clients cannot add free-form entries. Use owner/patron uploader on the Avancement page.
+  showToast('Action non autorisée: seules les équipes peuvent ajouter au carnet.');
 }
 function renderMaintenanceLog(){
   const listEl = document.getElementById('maintenance-log-list');
   if(!listEl) return;
   const cu = getCurrentUser();
-  const client = cu && cu.name ? cu.name : (document.querySelector('#profil input[placeholder="Nom du client"]') || {}).value;
+  // prefer the name shown in the profile input (when owner is viewing a client's profile), otherwise use the logged-in user's name
+  const profileNameInput = (document.querySelector('#profil input[placeholder="Nom du client"]') || {});
+  const profileNameVal = profileNameInput && profileNameInput.value && profileNameInput.value.trim() ? profileNameInput.value.trim() : null;
+  const client = profileNameVal || (cu && cu.name ? cu.name : null);
   const store = getMaintenanceStore();
   const items = (client && store[client]) ? store[client].slice().reverse() : [];
   if(!items || items.length === 0){ listEl.innerHTML = '<div style="color:#666">Aucun historique</div>'; return; }
@@ -1204,20 +1214,28 @@ function renderMaintenanceLog(){
     wrapper.style.marginBottom = '8px';
     wrapper.style.borderRadius = '8px';
     const photosHtml = (e.photos && e.photos.length) ? '<div style="display:flex;gap:8px;margin-top:8px;">' + e.photos.map(p => `<img src="${p}" style="width:84px;height:56px;object-fit:cover;border-radius:6px;">`).join('') + '</div>' : '';
+    // Render details
     wrapper.innerHTML = `<div style="font-weight:700">${e.service || ''} • ${d.toLocaleString()}</div><div style="font-size:13px;color:#444">${(e.notes||'')}</div>${photosHtml}`;
-    // if an invoice HTML was saved with this entry, add a button to open it
+    // if an invoice HTML was saved with this entry, add a button to open/download it
     if(e.invoiceHtml){
-      const btnContainer = document.createElement('div');
-      btnContainer.style.marginTop = '8px';
-      const btn = document.createElement('button');
-      btn.textContent = 'Voir facture';
-      btn.style.padding = '8px'; btn.style.borderRadius = '8px'; btn.style.border = 'none'; btn.style.background = '#1e90ff'; btn.style.color = '#fff'; btn.style.cursor = 'pointer';
-      btn.onclick = function(){ openInvoiceHtml(e.invoiceHtml); };
-      btnContainer.appendChild(btn);
-      wrapper.appendChild(btnContainer);
+      const controls = document.createElement('div'); controls.style.marginTop = '8px';
+      const btnView = document.createElement('button');
+      btnView.textContent = 'Voir facture'; btnView.style.marginRight = '8px'; btnView.style.padding='8px'; btnView.style.borderRadius='8px'; btnView.style.border='none'; btnView.style.background='#1e90ff'; btnView.style.color='#fff'; btnView.onclick = ()=> openInvoiceHtml(e.invoiceHtml);
+      const btnDl = document.createElement('button');
+      btnDl.textContent = 'Télécharger facture'; btnDl.style.padding='8px'; btnDl.style.borderRadius='8px'; btnDl.style.border='1px solid #1e90ff'; btnDl.style.background='transparent'; btnDl.style.color='#1e90ff'; btnDl.onclick = ()=> downloadInvoiceHtml(e.invoiceHtml, `${(e.service||'facture')}-${d.toISOString().slice(0,10)}.html`);
+      controls.appendChild(btnView); controls.appendChild(btnDl);
+      wrapper.appendChild(controls);
     }
     listEl.appendChild(wrapper);
   });
+}
+ 
+function downloadInvoiceHtml(html, filename){
+  try{
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename || 'facture.html'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }catch(e){ console.error('downloadInvoiceHtml error', e); }
 }
 
 // ensure slots & next RDV loaded on DOM ready
