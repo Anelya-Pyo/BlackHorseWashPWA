@@ -410,6 +410,14 @@ h1,h2 { margin-bottom:15px; text-align:center; }
   <span class="label">Profil</span>
 </a>
 
+  <!-- Compte (auth) - required by JS to toggle auth/profile UI -->
+  <a href="#" class="nav-item" id="auth-btn-bottom" onclick="(function(e){e.preventDefault(); const user = JSON.parse(localStorage.getItem('bhw_current_user')||'null'); if(user){ setCurrentUser(null); showToast('Déconnecté'); } else { openAuthModal(); } })();return false;" aria-label="Compte">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-5 0-9 2.5-9 5v1h18v-1c0-2.5-4-5-9-5z"/>
+    </svg>
+    <span class="label">Compte</span>
+  </a>
+
   <!-- Promo / Concours -->
   <a href="#" class="nav-item" data-target="promo" onclick="showSection('promo');return false;" aria-label="Promotions / Concours">
     <!-- Exemple SVG : étoile / coupon -->
