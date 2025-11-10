@@ -1006,7 +1006,12 @@ function hashPass(p){ try{ return btoa(p || ''); }catch(e){ return p || ''; } }
 function loadUsers(){ return JSON.parse(localStorage.getItem('bhw_users')||'[]'); }
 function saveUsers(u){ try{ localStorage.setItem('bhw_users', JSON.stringify(u)); }catch(e){} }
 function getCurrentUser(){ return JSON.parse(localStorage.getItem('bhw_current_user')||'null'); }
-function setCurrentUser(u){ if(u) localStorage.setItem('bhw_current_user', JSON.stringify(u)); else localStorage.removeItem('bhw_current_user'); updateAuthUI(); }
+function setCurrentUser(u){
+  if(u) localStorage.setItem('bhw_current_user', JSON.stringify(u)); else localStorage.removeItem('bhw_current_user');
+  updateAuthUI();
+  // If a user just logged in, open the Profil section so they see their data immediately
+  try{ if(u){ showSection('profil'); } }catch(e){}
+}
 function isOwner(){ const cu = getCurrentUser(); return cu && cu.role === 'patron'; }
 
 function updateAuthUI(){
